@@ -1,6 +1,41 @@
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function LandingPage() {
+  const supabase = createClient()
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [businessType, setBusinessType] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    const { error: insertError } = await supabase
+      .from('waitlist')
+      .insert({ email, name, business_type: businessType })
+
+    if (insertError) {
+      if (insertError.code === '23505') {
+        setError('This email is already on the waitlist!')
+      } else {
+        setError(insertError.message)
+      }
+      setLoading(false)
+      return
+    }
+
+    setSubmitted(true)
+    setLoading(false)
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
 
@@ -16,9 +51,9 @@ export default function LandingPage() {
           <Link href="/login" className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5">
             Login
           </Link>
-          <Link href="/register" className="bg-green-400 hover:bg-green-300 text-black text-sm font-bold px-5 py-2.5 rounded-lg transition">
-            Get Started Free
-          </Link>
+          <a href="#waitlist" className="bg-green-400 hover:bg-green-300 text-black text-sm font-bold px-5 py-2.5 rounded-lg transition">
+            Join Waitlist
+          </a>
         </div>
       </nav>
 
@@ -28,7 +63,13 @@ export default function LandingPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-green-400/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-green-400/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-6 py-32 text-center relative">
+        <div className="max-w-6xl mx-auto px-6 pt-24 pb-28 text-center relative">
+          <div className="inline-flex items-center gap-2 bg-green-400/10 border border-green-400/30 rounded-full px-5 py-2 mb-10">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-green-400 text-xs font-bold tracking-wider uppercase">
+              Africa&apos;s Business Operating System is here
+            </span>
+          </div>
 
           <h1 className="text-6xl md:text-8xl font-black mb-8 leading-none tracking-tight">
             Get Found.
@@ -45,12 +86,12 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <Link
-              href="/register"
+            <a
+              href="#waitlist"
               className="bg-green-400 hover:bg-green-300 text-black font-black px-10 py-5 rounded-xl transition text-xl shadow-lg shadow-green-400/20 hover:shadow-green-400/40"
             >
-              List Your Business Free
-            </Link>
+              Join the Waitlist
+            </a>
             <Link
               href="/discover"
               className="bg-gray-900 hover:bg-gray-800 text-white font-bold px-10 py-5 rounded-xl transition text-xl border border-gray-700 hover:border-gray-500"
@@ -196,36 +237,12 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              {
-                icon: 'V',
-                title: 'Verified Business Profile',
-                desc: 'A professional, verified profile that makes you look legitimate and trustworthy to every customer who finds you.',
-              },
-              {
-                icon: 'T',
-                title: 'TrustScore Engine',
-                desc: 'A real credibility score out of 100 built from reviews, verification, and digital presence. Customers know exactly who to trust.',
-              },
-              {
-                icon: 'B',
-                title: 'Bookings System',
-                desc: 'Accept and manage appointments directly. No more WhatsApp back and forth. Just confirmed bookings in your dashboard.',
-              },
-              {
-                icon: 'C',
-                title: 'Customer CRM',
-                desc: 'Every customer saved automatically. Full history. Know your best customers and reach them when it matters most.',
-              },
-              {
-                icon: 'I',
-                title: 'Invoice Generator',
-                desc: 'Create professional invoices in seconds. Send them. Track what is paid. Know exactly where your money is.',
-              },
-              {
-                icon: 'R',
-                title: 'Revenue Dashboard',
-                desc: 'See your revenue, bookings, and growth in real time. Run your business on data not guesswork.',
-              },
+              { icon: 'V', title: 'Verified Business Profile', desc: 'A professional, verified profile that makes you look legitimate and trustworthy to every customer who finds you.' },
+              { icon: 'T', title: 'TrustScore Engine', desc: 'A real credibility score out of 100 built from reviews, verification, and digital presence. Customers know exactly who to trust.' },
+              { icon: 'B', title: 'Bookings System', desc: 'Accept and manage appointments directly. No more WhatsApp back and forth. Just confirmed bookings in your dashboard.' },
+              { icon: 'C', title: 'Customer CRM', desc: 'Every customer saved automatically. Full history. Know your best customers and reach them when it matters most.' },
+              { icon: 'I', title: 'Invoice Generator', desc: 'Create professional invoices in seconds. Send them. Track what is paid. Know exactly where your money is.' },
+              { icon: 'R', title: 'Revenue Dashboard', desc: 'See your revenue, bookings, and growth in real time. Run your business on data not guesswork.' },
             ].map((feature) => (
               <div key={feature.title} className="bg-gray-900 rounded-2xl p-8 border border-gray-800 hover:border-green-400/40 transition-all group cursor-default">
                 <div className="w-12 h-12 bg-green-400/10 border border-green-400/20 rounded-2xl flex items-center justify-center text-green-400 font-black text-lg mb-6 group-hover:bg-green-400 group-hover:text-black transition-all">
@@ -251,21 +268,9 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {[
-            {
-              step: '01',
-              title: 'Register Your Business',
-              desc: 'Create your free account. Fill in your business details. Upload your logo. Done in under 5 minutes.',
-            },
-            {
-              step: '02',
-              title: 'Get Your TrustScore',
-              desc: 'Your profile is scored instantly out of 100. See exactly what to improve to rank higher and attract more customers.',
-            },
-            {
-              step: '03',
-              title: 'Grow Your Business',
-              desc: 'Customers discover you, message you, book you, and review you. You manage everything from one powerful dashboard.',
-            },
+            { step: '01', title: 'Register Your Business', desc: 'Create your free account. Fill in your business details. Upload your logo. Done in under 5 minutes.' },
+            { step: '02', title: 'Get Your TrustScore', desc: 'Your profile is scored instantly out of 100. See exactly what to improve to rank higher and attract more customers.' },
+            { step: '03', title: 'Grow Your Business', desc: 'Customers discover you, message you, book you, and review you. You manage everything from one powerful dashboard.' },
           ].map((item, i) => (
             <div key={item.step} className="relative">
               {i < 2 && (
@@ -284,9 +289,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 py-28">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
             <div>
-              <p className="text-green-400 text-sm font-bold uppercase tracking-widest mb-6">
-                For Investors
-              </p>
+              <p className="text-green-400 text-sm font-bold uppercase tracking-widest mb-6">For Investors</p>
               <h2 className="text-4xl md:text-5xl font-black mb-8 leading-tight">
                 We Are Building the Infrastructure Africa&apos;s Economy Has Been Missing.
               </h2>
@@ -352,13 +355,7 @@ export default function LandingPage() {
               price: 'N0',
               period: 'forever',
               desc: 'Get found online today',
-              features: [
-                'Business profile',
-                'TrustScore',
-                'Basic listing on discover',
-                'Customer messaging',
-              ],
-              cta: 'Start Free Now',
+              features: ['Business profile', 'TrustScore', 'Basic listing on discover', 'Customer messaging'],
               highlight: false,
             },
             {
@@ -366,15 +363,7 @@ export default function LandingPage() {
               price: 'N25,000',
               period: 'per month',
               desc: 'For businesses ready to grow',
-              features: [
-                'Everything in Free',
-                'Verified badge',
-                'Priority discovery listing',
-                'Bookings management',
-                'Customer CRM',
-                'Invoice generator',
-              ],
-              cta: 'Get Growth',
+              features: ['Everything in Free', 'Verified badge', 'Priority discovery listing', 'Bookings management', 'Customer CRM', 'Invoice generator'],
               highlight: true,
             },
             {
@@ -382,15 +371,7 @@ export default function LandingPage() {
               price: 'N60,000',
               period: 'per month',
               desc: 'For businesses that dominate',
-              features: [
-                'Everything in Growth',
-                'Featured placement',
-                'Revenue analytics',
-                'WhatsApp notifications',
-                'Priority support',
-                'Custom agency services',
-              ],
-              cta: 'Get Pro',
+              features: ['Everything in Growth', 'Featured placement', 'Revenue analytics', 'WhatsApp notifications', 'Priority support', 'Custom agency services'],
               highlight: false,
             },
           ].map((plan) => (
@@ -422,44 +403,103 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Link
-                href="/register"
+              <a
+                href="#waitlist"
                 className={`block text-center font-black py-4 rounded-xl transition text-lg ${
                   plan.highlight
                     ? 'bg-green-400 hover:bg-green-300 text-black shadow-lg shadow-green-400/20'
                     : 'bg-gray-800 hover:bg-gray-700 text-white'
                 }`}
               >
-                {plan.cta}
-              </Link>
+                Join Waitlist
+              </a>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="relative overflow-hidden border-t border-gray-800">
+      {/* Waitlist */}
+      <section className="relative overflow-hidden border-t border-gray-800" id="waitlist">
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-green-400/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-4xl mx-auto px-6 py-32 text-center relative">
-          <h2 className="text-5xl md:text-7xl font-black mb-8 leading-tight">
-            Africa&apos;s Businesses
+        <div className="max-w-2xl mx-auto px-6 py-32 text-center relative">
+          <div className="inline-flex items-center gap-2 bg-green-400/10 border border-green-400/30 rounded-full px-5 py-2 mb-8">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-green-400 text-xs font-bold tracking-wider uppercase">
+              Launch Coming Soon
+            </span>
+          </div>
+
+          <h2 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+            Be First.
             <br />
-            <span className="text-green-400">Deserve Better.</span>
+            <span className="text-green-400">Join the Waitlist.</span>
           </h2>
-          <p className="text-gray-300 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
-            Join KaltrixOS today. Get verified. Get found. Get the operating system
-            your business needs to compete, grow, and win in the digital economy.
+          <p className="text-gray-300 text-xl mb-12 leading-relaxed">
+            KaltrixOS is almost ready. Join the waitlist and be the first to get
+            access when we launch. Early members get free verified status and
+            priority listing.
           </p>
-          <Link
-            href="/register"
-            className="bg-green-400 hover:bg-green-300 text-black font-black px-12 py-6 rounded-2xl transition text-2xl inline-block shadow-xl shadow-green-400/20 hover:shadow-green-400/40"
-          >
-            Get Started Free Today
-          </Link>
-          <p className="text-gray-600 text-sm mt-8">
-            Free forever. Takes 5 minutes. No excuses.
-          </p>
+
+          {submitted ? (
+            <div className="bg-green-400/10 border border-green-400/30 rounded-2xl p-10">
+              <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-green-400 rounded-full" />
+              </div>
+              <h3 className="text-2xl font-black text-green-400 mb-2">You are on the list!</h3>
+              <p className="text-gray-400">
+                We will notify you the moment KaltrixOS launches.
+                Share with other business owners to move up the list.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleWaitlist} className="space-y-4 text-left">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-4 text-sm text-center">
+                  {error}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition text-lg"
+                />
+                <select
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-green-400 transition text-lg"
+                >
+                  <option value="">I am a...</option>
+                  <option value="business_owner">Business Owner</option>
+                  <option value="investor">Investor</option>
+                  <option value="customer">Customer</option>
+                  <option value="developer">Developer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <input
+                type="email"
+                placeholder="Your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition text-lg"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-400 hover:bg-green-300 text-black font-black py-5 rounded-xl transition text-xl shadow-xl shadow-green-400/20 hover:shadow-green-400/40 disabled:opacity-50"
+              >
+                {loading ? 'Joining...' : 'Join the Waitlist'}
+              </button>
+              <p className="text-gray-600 text-sm text-center">
+                No spam. Just a notification when we launch. That is it.
+              </p>
+            </form>
+          )}
         </div>
       </section>
 
@@ -479,7 +519,7 @@ export default function LandingPage() {
             <Link href="/admin" className="hover:text-white transition">Admin</Link>
           </div>
           <p className="text-gray-700 text-sm">
-            Built by <span className="text-gray-500">Kaltrix Agency</span> · digital systems and solutions .
+            Built by <span className="text-gray-500">Kaltrix Agency</span> · Digital Systems and Solutions
           </p>
         </div>
       </footer>
