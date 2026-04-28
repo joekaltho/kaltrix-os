@@ -63,13 +63,7 @@ export default function LandingPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-green-400/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-green-400/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-6 pt-24 pb-28 text-center relative">
-          <div className="inline-flex items-center gap-2 bg-green-400/10 border border-green-400/30 rounded-full px-5 py-2 mb-10">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-green-400 text-xs font-bold tracking-wider uppercase">
-              Africa&apos;s Business Operating System is here
-            </span>
-          </div>
+        <div className="max-w-4xl mx-auto px-6 py-32 text-center relative">
 
           <h1 className="text-6xl md:text-8xl font-black mb-8 leading-none tracking-tight">
             Get Found.
