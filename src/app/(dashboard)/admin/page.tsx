@@ -25,12 +25,21 @@ interface Profile {
   created_at: string
 }
 
+interface WaitlistEntry {
+  id: string
+  name: string
+  email: string
+  business_type: string
+  created_at: string
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [search, setSearch] = useState('')
 
@@ -47,13 +56,15 @@ export default function AdminPage() {
         return
       }
 
-      const [businessesRes, profilesRes] = await Promise.all([
+      const [businessesRes, profilesRes, waitlistRes] = await Promise.all([
         supabase.from('businesses').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
       ])
 
       setBusinesses(businessesRes.data || [])
       setProfiles(profilesRes.data || [])
+      setWaitlist(waitlistRes.data || [])
       setLoading(false)
     }
     fetchData()
@@ -136,8 +147,8 @@ export default function AdminPage() {
             <p className="text-3xl font-bold text-green-400">{businesses.length}</p>
           </div>
           <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
-            <p className="text-gray-400 text-xs mb-1">No Website</p>
-            <p className="text-3xl font-bold text-yellow-400">{noWebsite.length}</p>
+            <p className="text-gray-400 text-xs mb-1">Waitlist Signups</p>
+            <p className="text-3xl font-bold text-green-400">{waitlist.length}</p>
           </div>
           <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
             <p className="text-gray-400 text-xs mb-1">Flagged Leads</p>
@@ -151,17 +162,17 @@ export default function AdminPage() {
             <p className="text-3xl font-bold text-green-400">{businessUsers.length}</p>
           </div>
           <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
-            <p className="text-gray-400 text-xs mb-1">Unverified</p>
-            <p className="text-3xl font-bold text-yellow-400">{unverified.length}</p>
+            <p className="text-gray-400 text-xs mb-1">No Website</p>
+            <p className="text-3xl font-bold text-yellow-400">{noWebsite.length}</p>
           </div>
           <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
-            <p className="text-gray-400 text-xs mb-1">Low TrustScore</p>
-            <p className="text-3xl font-bold text-red-400">{lowTrust.length}</p>
+            <p className="text-gray-400 text-xs mb-1">Unverified</p>
+            <p className="text-3xl font-bold text-yellow-400">{unverified.length}</p>
           </div>
         </div>
 
         <div className="flex gap-2 mb-8 border-b border-gray-800 overflow-x-auto">
-          {['overview', 'businesses', 'users', 'flagged'].map((tab) => (
+          {['overview', 'businesses', 'users', 'flagged', 'waitlist'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -175,6 +186,11 @@ export default function AdminPage() {
               {tab === 'flagged' && flagged.length > 0 && (
                 <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
                   {flagged.length}
+                </span>
+              )}
+              {tab === 'waitlist' && waitlist.length > 0 && (
+                <span className="ml-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {waitlist.length}
                 </span>
               )}
             </button>
@@ -202,6 +218,32 @@ export default function AdminPage() {
                   <p className="text-green-400 text-xs mt-1">Potential: N{(lowTrust.length * 75000).toLocaleString()}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-green-400">Waitlist</h3>
+                <span className="text-3xl font-black text-green-400">{waitlist.length}</span>
+              </div>
+              <p className="text-gray-400 text-sm">People waiting for launch</p>
+              {waitlist.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {waitlist.slice(0, 3).map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between bg-black/30 rounded-lg px-3 py-2">
+                      <p className="text-sm text-gray-300">{entry.email}</p>
+                      <span className="text-xs text-gray-500">{entry.business_type?.replace('_', ' ') || 'N/A'}</span>
+                    </div>
+                  ))}
+                  {waitlist.length > 3 && (
+                    <button
+                      onClick={() => setActiveTab('waitlist')}
+                      className="text-green-400 text-xs hover:underline"
+                    >
+                      View all {waitlist.length} signups
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -269,23 +311,17 @@ export default function AdminPage() {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-800 flex gap-2 flex-wrap">
                     {!business.is_verified && (
-                      <button
-                        onClick={() => handleVerify(business.id)}
-                        className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition"
-                      >
+                      <button onClick={() => handleVerify(business.id)} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
                         Verify
                       </button>
                     )}
-                    <button
-                      onClick={() => handleCall(business.phone)}
-                      className="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition"
-                    >
+                    <button onClick={() => handleCall(business.phone)} className="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
                       Call
                     </button>
-                    <button
-                      onClick={() => handleDelete(business.id)}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition"
-                    >
+                    <button onClick={() => handleWhatsApp(business.phone)} className="bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                      WhatsApp
+                    </button>
+                    <button onClick={() => handleDelete(business.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition">
                       Delete
                     </button>
                   </div>
@@ -338,7 +374,6 @@ export default function AdminPage() {
                     </div>
                     <span className="text-green-400 font-bold">TS: {business.trust_score}</span>
                   </div>
-
                   <div className="mt-3 space-y-1">
                     {!business.website_url && (
                       <div className="flex items-center justify-between bg-yellow-500/5 rounded-lg px-3 py-2">
@@ -359,29 +394,51 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-
                   <div className="mt-3 pt-3 border-t border-gray-800 flex gap-2">
-                    <button
-                      onClick={() => handleCall(business.phone)}
-                      className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition"
-                    >
+                    <button onClick={() => handleCall(business.phone)} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
                       Call Now
                     </button>
-                    <button
-                      onClick={() => handleWhatsApp(business.phone)}
-                      className="bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg transition"
-                    >
+                    <button onClick={() => handleWhatsApp(business.phone)} className="bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg transition">
                       WhatsApp
                     </button>
                     {!business.is_verified && (
-                      <button
-                        onClick={() => handleVerify(business.id)}
-                        className="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition"
-                      >
+                      <button onClick={() => handleVerify(business.id)} className="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
                         Mark Verified
                       </button>
                     )}
                   </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'waitlist' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">Waitlist ({waitlist.length})</h3>
+              <span className="bg-green-400/10 text-green-400 text-xs px-3 py-1 rounded-full border border-green-400/20">
+                {waitlist.length} signups
+              </span>
+            </div>
+            {waitlist.length === 0 ? (
+              <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
+                <p className="text-gray-400">No waitlist signups yet</p>
+                <p className="text-gray-600 text-sm mt-1">Share the landing page to get signups</p>
+              </div>
+            ) : (
+              waitlist.map((entry) => (
+                <div key={entry.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{entry.name || 'Anonymous'}</p>
+                    <p className="text-gray-400 text-sm">{entry.email}</p>
+                    <p className="text-gray-600 text-xs mt-1">
+                      {entry.business_type?.replace('_', ' ') || 'Not specified'} — {new Date(entry.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className="bg-green-400/10 text-green-400 text-xs px-3 py-1 rounded-full border border-green-400/20">
+                    Waitlist
+                  </span>
                 </div>
               ))
             )}
