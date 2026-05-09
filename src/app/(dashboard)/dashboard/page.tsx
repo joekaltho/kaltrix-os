@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+const [plan, setPlan] = useState<'free' | 'growth' | 'pro'>('free')
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
 
 export default function DashboardPage() {
@@ -37,14 +38,12 @@ export default function DashboardPage() {
 
       if (businessData) {
         setBusiness(businessData)
-
         const [bookingsRes, messagesRes, invoicesRes, customersRes] = await Promise.all([
           supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
           supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
           supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
           supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
         ])
-
         setBookings(bookingsRes.data || [])
         setMessages(messagesRes.data || [])
         setInvoices(invoicesRes.data || [])
@@ -59,6 +58,21 @@ export default function DashboardPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  const updateBookingStatus = async (id: string, status: Booking['status']) => {
+    await supabase.from('bookings').update({ status }).eq('id', id)
+    setBookings(bookings.map(b => b.id === id ? { ...b, status } : b))
+  }
+
+  const updateInvoiceStatus = async (id: string, status: Invoice['status']) => {
+    await supabase.from('invoices').update({ status }).eq('id', id)
+    setInvoices(invoices.map(i => i.id === id ? { ...i, status } : i))
+  }
+
+  const markMessageRead = async (id: string) => {
+    await supabase.from('messages').update({ is_read: true }).eq('id', id)
+    setMessages(messages.map(m => m.id === id ? { ...m, is_read: true } : m))
   }
 
   const todayBookings = bookings.filter(b => b.date === new Date().toISOString().split('T')[0])
@@ -77,7 +91,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black text-white">
 
-      {/* Navbar */}
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 bg-black z-10">
         <h1 className="text-xl font-bold">Kaltrix<span className="text-green-400">OS</span></h1>
         <div className="flex items-center gap-6">
@@ -104,7 +117,6 @@ export default function DashboardPage() {
       ) : (
         <div className="max-w-6xl mx-auto px-6 py-8">
 
-          {/* Business Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-2xl font-bold">{business.business_name}</h2>
@@ -120,7 +132,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tab Navigation */}
           <div className="flex gap-2 mb-8 border-b border-gray-800 overflow-x-auto">
             {['overview', 'bookings', 'customers', 'inbox', 'invoices'].map((tab) => (
               <button
@@ -150,8 +161,6 @@ export default function DashboardPage() {
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-
-              {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
                   <p className="text-gray-400 text-xs mb-1">Today Bookings</p>
@@ -167,28 +176,22 @@ export default function DashboardPage() {
                 </div>
                 <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
                   <p className="text-gray-400 text-xs mb-1">Total Revenue</p>
-                  <p className="text-3xl font-bold text-green-400">
-                    ₦{totalRevenue.toLocaleString()}
-                  </p>
+                  <p className="text-3xl font-bold text-green-400">N{totalRevenue.toLocaleString()}</p>
                 </div>
               </div>
 
-              {/* Revenue Chart */}
               <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                 <h3 className="text-sm font-medium text-gray-400 mb-4">Revenue Overview</h3>
                 {invoices.filter(i => i.status === 'paid').length === 0 ? (
                   <div className="h-40 flex items-center justify-center">
-                    <p className="text-gray-600 text-sm">No revenue data yet — create and mark invoices as paid to see your chart</p>
+                    <p className="text-gray-600 text-sm">No revenue data yet — mark invoices as paid to see your chart</p>
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={160}>
-                    <AreaChart data={invoices
-                      .filter(i => i.status === 'paid')
-                      .map(i => ({
-                        date: new Date(i.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }),
-                        revenue: i.total
-                      }))
-                    }>
+                    <AreaChart data={invoices.filter(i => i.status === 'paid').map(i => ({
+                      date: new Date(i.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }),
+                      revenue: i.total
+                    }))}>
                       <defs>
                         <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#4ade80" stopOpacity={0.2} />
@@ -197,18 +200,13 @@ export default function DashboardPage() {
                       </defs>
                       <XAxis dataKey="date" stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 11 }} />
                       <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px' }}
-                        labelStyle={{ color: '#9ca3af' }}
-                        itemStyle={{ color: '#4ade80' }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px' }} labelStyle={{ color: '#9ca3af' }} itemStyle={{ color: '#4ade80' }} />
                       <Area type="monotone" dataKey="revenue" stroke="#4ade80" fill="url(#revenueGradient)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
               </div>
 
-              {/* TrustScore + Website + Verification */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                   <p className="text-gray-400 text-sm mb-2">TrustScore</p>
@@ -218,15 +216,12 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-gray-500 text-xs mt-2">out of 100</p>
                 </div>
-
                 <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                   <p className="text-gray-400 text-sm mb-2">Website</p>
                   {business.website_url ? (
                     <div>
                       <div className="text-2xl font-bold text-green-400">Live</div>
-                      <a href={business.website_url} target="_blank" rel="noreferrer" className="text-green-400 text-xs mt-2 block hover:underline truncate">
-                        {business.website_url}
-                      </a>
+                      <a href={business.website_url} target="_blank" rel="noreferrer" className="text-green-400 text-xs mt-2 block hover:underline truncate">{business.website_url}</a>
                     </div>
                   ) : (
                     <div>
@@ -236,7 +231,6 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-
                 <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                   <p className="text-gray-400 text-sm mb-2">Verification</p>
                   {business.is_verified ? (
@@ -251,7 +245,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Quick Actions */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <button onClick={() => setActiveTab('bookings')} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-green-400/50 transition">
                   <p className="text-green-400 text-2xl font-bold mb-1">{bookings.length}</p>
@@ -271,7 +264,6 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* Upgrade CTA */}
               {!business.website_url && (
                 <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6 flex items-center justify-between">
                   <div>
@@ -298,26 +290,47 @@ export default function DashboardPage() {
               {bookings.length === 0 ? (
                 <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
                   <p className="text-gray-400">No bookings yet</p>
-                  <Link href="/dashboard/bookings/new" className="text-green-400 text-sm mt-2 block hover:underline">
-                    Create your first booking
-                  </Link>
+                  <Link href="/dashboard/bookings/new" className="text-green-400 text-sm mt-2 block hover:underline">Create your first booking</Link>
                 </div>
               ) : (
                 bookings.map((booking) => (
-                  <div key={booking.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{booking.customer_name}</p>
-                      <p className="text-gray-400 text-sm">{booking.service}</p>
-                      <p className="text-gray-500 text-xs">{booking.date} at {booking.time}</p>
+                  <div key={booking.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-medium">{booking.customer_name}</p>
+                        <p className="text-gray-400 text-sm">{booking.service}</p>
+                        <p className="text-gray-500 text-xs">{booking.date} at {booking.time}</p>
+                        {booking.notes && <p className="text-gray-600 text-xs mt-1">{booking.notes}</p>}
+                      </div>
+                      <span className={`text-xs px-3 py-1 rounded-full border ${
+                        booking.status === 'confirmed' ? 'bg-green-400/10 text-green-400 border-green-400/20' :
+                        booking.status === 'cancelled' ? 'bg-red-400/10 text-red-400 border-red-400/20' :
+                        booking.status === 'completed' ? 'bg-blue-400/10 text-blue-400 border-blue-400/20' :
+                        'bg-yellow-400/10 text-yellow-400 border-yellow-400/20'
+                      }`}>
+                        {booking.status}
+                      </span>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full border ${
-                      booking.status === 'confirmed' ? 'bg-green-400/10 text-green-400 border-green-400/20' :
-                      booking.status === 'cancelled' ? 'bg-red-400/10 text-red-400 border-red-400/20' :
-                      booking.status === 'completed' ? 'bg-blue-400/10 text-blue-400 border-blue-400/20' :
-                      'bg-yellow-400/10 text-yellow-400 border-yellow-400/20'
-                    }`}>
-                      {booking.status}
-                    </span>
+                    {booking.status === 'pending' && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-800">
+                        <button onClick={() => updateBookingStatus(booking.id, 'confirmed')} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                          Confirm
+                        </button>
+                        <button onClick={() => updateBookingStatus(booking.id, 'cancelled')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    {booking.status === 'confirmed' && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-800">
+                        <button onClick={() => updateBookingStatus(booking.id, 'completed')} className="bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 text-xs px-3 py-1.5 rounded-lg transition">
+                          Mark Complete
+                        </button>
+                        <button onClick={() => updateBookingStatus(booking.id, 'cancelled')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -336,9 +349,7 @@ export default function DashboardPage() {
               {customers.length === 0 ? (
                 <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
                   <p className="text-gray-400">No customers yet</p>
-                  <Link href="/dashboard/customers/new" className="text-green-400 text-sm mt-2 block hover:underline">
-                    Add your first customer
-                  </Link>
+                  <Link href="/dashboard/customers/new" className="text-green-400 text-sm mt-2 block hover:underline">Add your first customer</Link>
                 </div>
               ) : (
                 customers.map((customer) => (
@@ -366,16 +377,27 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 messages.map((message) => (
-                  <div key={message.id} className={`bg-gray-900 rounded-xl p-4 border transition ${
-                    !message.is_read ? 'border-yellow-400/30' : 'border-gray-800'
-                  }`}>
+                  <div key={message.id} className={`bg-gray-900 rounded-xl p-4 border transition ${!message.is_read ? 'border-yellow-400/30' : 'border-gray-800'}`}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="font-medium">{message.sender_name}</p>
-                      {!message.is_read && (
-                        <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">New</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!message.is_read && (
+                          <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">New</span>
+                        )}
+                        {!message.is_read && (
+                          <button
+                            onClick={() => markMessageRead(message.id)}
+                            className="text-gray-500 hover:text-white text-xs transition"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-gray-400 text-sm">{message.content}</p>
+                    {message.sender_phone && (
+                      <p className="text-gray-600 text-xs mt-1">Phone: {message.sender_phone}</p>
+                    )}
                     <p className="text-gray-600 text-xs mt-2">{new Date(message.created_at).toLocaleDateString()}</p>
                   </div>
                 ))
@@ -395,25 +417,56 @@ export default function DashboardPage() {
               {invoices.length === 0 ? (
                 <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
                   <p className="text-gray-400">No invoices yet</p>
-                  <Link href="/dashboard/invoices/new" className="text-green-400 text-sm mt-2 block hover:underline">
-                    Create your first invoice
-                  </Link>
+                  <Link href="/dashboard/invoices/new" className="text-green-400 text-sm mt-2 block hover:underline">Create your first invoice</Link>
                 </div>
               ) : (
                 invoices.map((invoice) => (
-                  <div key={invoice.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{invoice.customer_name}</p>
-                      <p className="text-gray-400 text-sm">₦{invoice.total.toLocaleString()}</p>
-                      <p className="text-gray-500 text-xs">{new Date(invoice.created_at).toLocaleDateString()}</p>
+                  <div key={invoice.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-medium">{invoice.customer_name}</p>
+                        {invoice.customer_phone && <p className="text-gray-500 text-xs">{invoice.customer_phone}</p>}
+                        <p className="text-green-400 font-bold mt-1">N{invoice.total.toLocaleString()}</p>
+                        <p className="text-gray-500 text-xs">{new Date(invoice.created_at).toLocaleDateString()}</p>
+                        {invoice.due_date && <p className="text-gray-600 text-xs">Due: {invoice.due_date}</p>}
+                      </div>
+                      <span className={`text-xs px-3 py-1 rounded-full border ${
+                        invoice.status === 'paid' ? 'bg-green-400/10 text-green-400 border-green-400/20' :
+                        invoice.status === 'overdue' ? 'bg-red-400/10 text-red-400 border-red-400/20' :
+                        'bg-yellow-400/10 text-yellow-400 border-yellow-400/20'
+                      }`}>
+                        {invoice.status}
+                      </span>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full border ${
-                      invoice.status === 'paid' ? 'bg-green-400/10 text-green-400 border-green-400/20' :
-                      invoice.status === 'overdue' ? 'bg-red-400/10 text-red-400 border-red-400/20' :
-                      'bg-yellow-400/10 text-yellow-400 border-yellow-400/20'
-                    }`}>
-                      {invoice.status}
-                    </span>
+
+                    <div className="bg-gray-800 rounded-lg p-3 mb-3">
+                      {invoice.items.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between text-xs py-1">
+                          <span className="text-gray-300">{item.name} x{item.quantity}</span>
+                          <span className="text-gray-400">N{(item.quantity * item.price).toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-gray-700 mt-2 pt-2 flex items-center justify-between">
+                        <span className="text-xs font-bold text-white">Total</span>
+                        <span className="text-xs font-bold text-green-400">N{invoice.total.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {invoice.status === 'unpaid' && (
+                      <div className="flex gap-2">
+                        <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                          Mark as Paid
+                        </button>
+                        <button onClick={() => updateInvoiceStatus(invoice.id, 'overdue')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition">
+                          Mark Overdue
+                        </button>
+                      </div>
+                    )}
+                    {invoice.status === 'overdue' && (
+                      <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                        Mark as Paid
+                      </button>
+                    )}
                   </div>
                 ))
               )}
