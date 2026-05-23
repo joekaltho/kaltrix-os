@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient()
+  // ❌ Remove this line: const supabase = createClient()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -16,8 +15,13 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
 
+    // ✅ Create client lazily only when needed
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+
+    const redirectUrl = `${window.location.origin}/reset-password`
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: redirectUrl,
     })
 
     if (resetError) {
@@ -31,6 +35,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
+    // ... your JSX remains exactly the same ...
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">

@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import PremiumGuard from '@/components/PremiumGuard'
 
-export default function NewCustomerPage() {
+function NewCustomerForm() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -60,7 +61,6 @@ export default function NewCustomerPage() {
   return (
     <div className="min-h-screen bg-black text-white px-4 py-10">
       <div className="max-w-xl mx-auto">
-
         <div className="mb-8">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
             Back to Dashboard
@@ -77,10 +77,8 @@ export default function NewCustomerPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
           <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
             <h2 className="font-semibold">Customer Information</h2>
-
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Full Name *</label>
               <input
@@ -93,7 +91,6 @@ export default function NewCustomerPage() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
-
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Phone Number</label>
               <input
@@ -105,7 +102,6 @@ export default function NewCustomerPage() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
-
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Email Address</label>
               <input
@@ -117,7 +113,6 @@ export default function NewCustomerPage() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
-
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Notes</label>
               <textarea
@@ -138,9 +133,16 @@ export default function NewCustomerPage() {
           >
             {loading ? 'Saving customer...' : 'Save Customer'}
           </button>
-
         </form>
       </div>
     </div>
+  )
+}
+
+export default function NewCustomerPage() {
+  return (
+    <PremiumGuard feature="crm">
+      <NewCustomerForm />
+    </PremiumGuard>
   )
 }

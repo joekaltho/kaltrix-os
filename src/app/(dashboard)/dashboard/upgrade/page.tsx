@@ -97,6 +97,7 @@ export default function UpgradePage() {
       customer: {
         email: userEmail,
         name: userName || 'Customer',
+        phone_number: '08000000000', // ✅ FIX: Added required phone_number field
       },
       customizations: {
         title: 'KaltrixOS',
@@ -184,72 +185,84 @@ export default function UpgradePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`rounded-2xl p-8 border transition relative ${
-              plan.highlight
-                ? 'border-green-400/50 bg-green-400/5 shadow-xl shadow-green-400/10'
-                : 'border-gray-800 bg-gray-900'
-            }`}>
-              {plan.highlight && !plan.current && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-green-400 text-black text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-              {plan.current && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-gray-700 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
-                    Current Plan
-                  </span>
-                </div>
-              )}
+          {plans.map((plan) => {
+            const config = getFlutterwaveConfig(plan)
+            const isPaymentValid = config !== null && plan.price > 0
 
-              <p className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">{plan.name}</p>
-              <div className="flex items-end gap-1 mb-1">
-                <p className="text-4xl font-black">
-                  {plan.price === 0 ? 'Free' : `N${plan.price.toLocaleString()}`}
-                </p>
-                {plan.price > 0 && <p className="text-gray-500 text-sm mb-1.5">/{plan.period}</p>}
-              </div>
-              <p className="text-gray-500 text-sm mb-8">{plan.desc}</p>
-
-              <div className="space-y-3 mb-8">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center flex-shrink-0">
-                      <div className="w-2 h-2 rounded-full bg-green-400" />
-                    </div>
-                    <p className="text-gray-300 text-sm">{feature}</p>
+            return (
+              <div key={plan.name} className={`rounded-2xl p-8 border transition relative ${
+                plan.highlight
+                  ? 'border-green-400/50 bg-green-400/5 shadow-xl shadow-green-400/10'
+                  : 'border-gray-800 bg-gray-900'
+              }`}>
+                {plan.highlight && !plan.current && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="bg-green-400 text-black text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
+                      Most Popular
+                    </span>
                   </div>
-                ))}
-              </div>
+                )}
+                {plan.current && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="bg-gray-700 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
+                      Current Plan
+                    </span>
+                  </div>
+                )}
 
-              {plan.current ? (
-                <div className="block text-center font-black py-4 rounded-xl bg-gray-800 text-gray-500 text-lg">
-                  Current Plan
+                <p className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">{plan.name}</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <p className="text-4xl font-black">
+                    {plan.price === 0 ? 'Free' : `N${plan.price.toLocaleString()}`}
+                  </p>
+                  {plan.price > 0 && <p className="text-gray-500 text-sm mb-1.5">/{plan.period}</p>}
                 </div>
-              ) : plan.planKey === 'free' ? (
-                <div className="block text-center font-black py-4 rounded-xl bg-gray-800 text-gray-500 text-lg">
-                  Free Forever
+                <p className="text-gray-500 text-sm mb-8">{plan.desc}</p>
+
+                <div className="space-y-3 mb-8">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center flex-shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-green-400" />
+                      </div>
+                      <p className="text-gray-300 text-sm">{feature}</p>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <FlutterWaveButton
-                  key={plan.planKey}
-                  {...getFlutterwaveConfig(plan)!}
-                  text={processingPlan === plan.planKey ? 'Processing...' : `Upgrade to ${plan.name}`}
-                  callback={(response) => handlePaymentSuccess(response, plan.planKey)}
-                  onClose={handlePaymentClose}
-                  className={`w-full block text-center font-black py-4 rounded-xl transition text-lg disabled:opacity-50 ${
-                    plan.highlight
-                      ? 'bg-green-400 hover:bg-green-300 text-black shadow-lg shadow-green-400/20'
-                      : 'bg-gray-800 hover:bg-gray-700 text-white'
-                  }`}
-                  disabled={processingPlan !== ''}
-                />
-              )}
-            </div>
-          ))}
+
+                {plan.current ? (
+                  <div className="block text-center font-black py-4 rounded-xl bg-gray-800 text-gray-500 text-lg">
+                    Current Plan
+                  </div>
+                ) : plan.planKey === 'free' ? (
+                  <div className="block text-center font-black py-4 rounded-xl bg-gray-800 text-gray-500 text-lg">
+                    Free Forever
+                  </div>
+                ) : isPaymentValid ? (
+                  <FlutterWaveButton
+                    key={plan.planKey}
+                    {...config}
+                    text={processingPlan === plan.planKey ? 'Processing...' : `Upgrade to ${plan.name}`}
+                    callback={(response) => handlePaymentSuccess(response, plan.planKey)}
+                    onClose={handlePaymentClose}
+                    className={`w-full block text-center font-black py-4 rounded-xl transition text-lg disabled:opacity-50 ${
+                      plan.highlight
+                        ? 'bg-green-400 hover:bg-green-300 text-black shadow-lg shadow-green-400/20'
+                        : 'bg-gray-800 hover:bg-gray-700 text-white'
+                    }`}
+                    disabled={processingPlan !== ''}
+                  />
+                ) : (
+                  <button
+                    disabled
+                    className="w-full block text-center font-black py-4 rounded-xl bg-gray-800 text-gray-500 text-lg cursor-not-allowed"
+                  >
+                    Payment Unavailable
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Agency Services */}
@@ -281,4 +294,4 @@ export default function UpgradePage() {
       </div>
     </div>
   )
-}
+} 

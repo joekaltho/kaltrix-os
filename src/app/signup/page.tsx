@@ -1,4 +1,6 @@
-'use client'
+﻿'use client'
+
+export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -16,12 +18,18 @@ export default function RegisterPage() {
     password: '',
   })
 
+  // 🔒 Disable registration until launch date 
+  const LAUNCH_DATE = new Date('2026-06-22T00:00:00') 
+  const now = new Date()
+  const isRegistrationOpen = now >= LAUNCH_DATE
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isRegistrationOpen) return
     setLoading(true)
     setError('')
 
@@ -56,11 +64,27 @@ export default function RegisterPage() {
     }
   }
 
+  if (!isRegistrationOpen) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+            <h1 className="text-2xl font-bold text-white mb-2">Registration Opening Soon</h1>
+            <p className="text-gray-400 mb-4">
+              KaltrixOS is launching soon. Please check back on June 22, 2026.
+            </p>
+            <Link href="/login" className="text-green-400 hover:underline">
+              Sign in if you already have an account
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-
-        {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
             Kaltrix<span className="text-green-400">OS</span>
@@ -68,15 +92,13 @@ export default function RegisterPage() {
           <p className="text-gray-400 mt-2">Africa's Business Operating System</p>
         </div>
 
-        {/* Card */}
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
           <h2 className="text-xl font-semibold text-white mb-6">
             Create your account
           </h2>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 
-            rounded-lg p-3 mb-6 text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 mb-6 text-sm">
               {error}
             </div>
           )}
@@ -93,9 +115,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 placeholder="John Doe"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg 
-                px-4 py-3 text-white placeholder-gray-500 focus:outline-none 
-                focus:border-green-400 transition"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
 
@@ -110,9 +130,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg 
-                px-4 py-3 text-white placeholder-gray-500 focus:outline-none 
-                focus:border-green-400 transition"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
 
@@ -127,18 +145,14 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 placeholder="Min. 8 characters"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg 
-                px-4 py-3 text-white placeholder-gray-500 focus:outline-none 
-                focus:border-green-400 transition"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-400 hover:bg-green-300 text-black 
-              font-semibold rounded-lg px-4 py-3 transition disabled:opacity-50 
-              disabled:cursor-not-allowed mt-2"
+              className="w-full bg-green-400 hover:bg-green-300 text-black font-semibold rounded-lg px-4 py-3 transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>

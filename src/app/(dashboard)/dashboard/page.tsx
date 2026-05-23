@@ -1,12 +1,14 @@
 ﻿'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-const [plan, setPlan] = useState<'free' | 'growth' | 'pro'>('free')
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
+import { getCurrentPlan, hasFeature, Plan } from '@/lib/check-plan'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [activeTab, setActiveTab] = useState('overview')
+  const [plan, setPlan] = useState<Plan>('free')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,16 +41,31 @@ export default function DashboardPage() {
 
       if (businessData) {
         setBusiness(businessData)
-        const [bookingsRes, messagesRes, invoicesRes, customersRes] = await Promise.all([
-          supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-          supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-          supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-          supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-        ])
-        setBookings(bookingsRes.data || [])
-        setMessages(messagesRes.data || [])
-        setInvoices(invoicesRes.data || [])
-        setCustomers(customersRes.data || [])
+
+        // Fetch subscription plan
+        const currentPlan = await getCurrentPlan()
+        setPlan(currentPlan)
+
+        // Only fetch premium data if plan allows (to save bandwidth)
+        if (hasFeature(currentPlan, 'bookings')) {
+          const { data } = await supabase
+            .from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+          setBookings(data || [])
+        }
+        if (hasFeature(currentPlan, 'crm')) {
+          const { data } = await supabase
+            .from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+          setCustomers(data || [])
+        }
+        if (hasFeature(currentPlan, 'invoices')) {
+          const { data } = await supabase
+            .from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+          setInvoices(data || [])
+        }
+        // Messages are free (inbox)
+        const { data: messagesData } = await supabase
+          .from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+        setMessages(messagesData || [])
       }
 
       setLoading(false)
@@ -61,11 +79,13 @@ export default function DashboardPage() {
   }
 
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
+    if (!hasFeature(plan, 'bookings')) return
     await supabase.from('bookings').update({ status }).eq('id', id)
     setBookings(bookings.map(b => b.id === id ? { ...b, status } : b))
   }
 
   const updateInvoiceStatus = async (id: string, status: Invoice['status']) => {
+    if (!hasFeature(plan, 'invoices')) return
     await supabase.from('invoices').update({ status }).eq('id', id)
     setInvoices(invoices.map(i => i.id === id ? { ...i, status } : i))
   }
@@ -80,6 +100,15 @@ export default function DashboardPage() {
   const unpaidInvoices = invoices.filter(i => i.status === 'unpaid')
   const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
 
+  // Available tabs based on plan
+  const tabs = [
+    { id: 'overview', label: 'Overview', always: true },
+    { id: 'inbox', label: 'Inbox', always: true },
+    { id: 'bookings', label: 'Bookings', requires: 'bookings' as const },
+    { id: 'customers', label: 'Customers', requires: 'crm' as const },
+    { id: 'invoices', label: 'Invoices', requires: 'invoices' as const },
+  ].filter(tab => tab.always || (tab.requires && hasFeature(plan, tab.requires)))
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -90,7 +119,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 bg-black z-10">
         <h1 className="text-xl font-bold">Kaltrix<span className="text-green-400">OS</span></h1>
         <div className="flex items-center gap-6">
@@ -100,6 +128,7 @@ export default function DashboardPage() {
             </button>
           )}
           <span className="text-gray-400 text-sm">Hey, {userName}</span>
+          <span className="text-xs bg-gray-800 px-2 py-1 rounded-full capitalize">{plan}</span>
           <button onClick={handleSignOut} className="text-sm text-gray-400 hover:text-white transition">
             Sign out
           </button>
@@ -116,7 +145,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-6 py-8">
-
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-2xl font-bold">{business.business_name}</h2>
@@ -132,24 +160,25 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Tab navigation */}
           <div className="flex gap-2 mb-8 border-b border-gray-800 overflow-x-auto">
-            {['overview', 'bookings', 'customers', 'inbox', 'invoices'].map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 text-sm font-medium capitalize whitespace-nowrap transition border-b-2 ${
-                  activeTab === tab
+                  activeTab === tab.id
                     ? 'border-green-400 text-green-400'
                     : 'border-transparent text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
-                {tab === 'inbox' && unreadMessages.length > 0 && (
+                {tab.label}
+                {tab.id === 'inbox' && unreadMessages.length > 0 && (
                   <span className="ml-2 bg-yellow-500 text-black text-xs px-1.5 py-0.5 rounded-full">
                     {unreadMessages.length}
                   </span>
                 )}
-                {tab === 'invoices' && unpaidInvoices.length > 0 && (
+                {tab.id === 'invoices' && unpaidInvoices.length > 0 && (
                   <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
                     {unpaidInvoices.length}
                   </span>
@@ -158,7 +187,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* OVERVIEW TAB */}
+          {/* OVERVIEW TAB (always visible) */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -180,13 +209,23 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <h3 className="text-sm font-medium text-gray-400 mb-4">Revenue Overview</h3>
-                {invoices.filter(i => i.status === 'paid').length === 0 ? (
-                  <div className="h-40 flex items-center justify-center">
-                    <p className="text-gray-600 text-sm">No revenue data yet — mark invoices as paid to see your chart</p>
+              {/* Upgrade CTA for free users */}
+              {plan === 'free' && (
+                <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-green-400">Unlock premium features</h3>
+                    <p className="text-gray-400 text-sm mt-1">Get bookings, CRM, invoices, and more with Growth or Pro plan.</p>
                   </div>
-                ) : (
+                  <Link href="/dashboard/upgrade" className="bg-green-400 hover:bg-green-300 text-black font-semibold px-6 py-3 rounded-xl transition text-sm">
+                    Upgrade Now
+                  </Link>
+                </div>
+              )}
+
+              {/* Revenue chart – Pro only (analytics feature) */}
+              {hasFeature(plan, 'analytics') && invoices.filter(i => i.status === 'paid').length > 0 && (
+                <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                  <h3 className="text-sm font-medium text-gray-400 mb-4">Revenue Overview</h3>
                   <ResponsiveContainer width="100%" height={160}>
                     <AreaChart data={invoices.filter(i => i.status === 'paid').map(i => ({
                       date: new Date(i.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }),
@@ -204,8 +243,8 @@ export default function DashboardPage() {
                       <Area type="monotone" dataKey="revenue" stroke="#4ade80" fill="url(#revenueGradient)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
@@ -244,42 +283,47 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button onClick={() => setActiveTab('bookings')} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-green-400/50 transition">
-                  <p className="text-green-400 text-2xl font-bold mb-1">{bookings.length}</p>
-                  <p className="text-sm text-gray-400">Bookings</p>
-                </button>
-                <button onClick={() => setActiveTab('customers')} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-green-400/50 transition">
-                  <p className="text-green-400 text-2xl font-bold mb-1">{customers.length}</p>
-                  <p className="text-sm text-gray-400">Customers</p>
-                </button>
-                <button onClick={() => setActiveTab('inbox')} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-green-400/50 transition">
-                  <p className="text-yellow-400 text-2xl font-bold mb-1">{messages.length}</p>
-                  <p className="text-sm text-gray-400">Messages</p>
-                </button>
-                <button onClick={() => setActiveTab('invoices')} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-green-400/50 transition">
-                  <p className="text-green-400 text-2xl font-bold mb-1">{invoices.length}</p>
-                  <p className="text-sm text-gray-400">Invoices</p>
-                </button>
-              </div>
-
-              {!business.website_url && (
-                <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-green-400">Get a Professional Website</h3>
-                    <p className="text-gray-400 text-sm mt-1">Businesses with websites get 3x more customers.</p>
-                  </div>
-                  <Link href="/dashboard/upgrade" className="bg-green-400 hover:bg-green-300 text-black font-semibold px-6 py-3 rounded-xl transition text-sm whitespace-nowrap ml-4">
-                    Get Started
-                  </Link>
+          {/* INBOX TAB (free for all) */}
+          {activeTab === 'inbox' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold">Inbox</h3>
+              {messages.length === 0 ? (
+                <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
+                  <p className="text-gray-400">No messages yet</p>
+                  <p className="text-gray-500 text-sm mt-1">Messages from customers will appear here</p>
                 </div>
+              ) : (
+                messages.map((message) => (
+                  <div key={message.id} className={`bg-gray-900 rounded-xl p-4 border transition ${!message.is_read ? 'border-yellow-400/30' : 'border-gray-800'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium">{message.sender_name}</p>
+                      <div className="flex items-center gap-2">
+                        {!message.is_read && (
+                          <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">New</span>
+                        )}
+                        {!message.is_read && (
+                          <button onClick={() => markMessageRead(message.id)} className="text-gray-500 hover:text-white text-xs transition">
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-sm">{message.content}</p>
+                    {message.sender_phone && (
+                      <p className="text-gray-600 text-xs mt-1">Phone: {message.sender_phone}</p>
+                    )}
+                    <p className="text-gray-600 text-xs mt-2">{new Date(message.created_at).toLocaleDateString()}</p>
+                  </div>
+                ))
               )}
             </div>
           )}
 
-          {/* BOOKINGS TAB */}
-          {activeTab === 'bookings' && (
+          {/* BOOKINGS TAB – premium */}
+          {hasFeature(plan, 'bookings') && activeTab === 'bookings' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold">Bookings</h3>
@@ -337,8 +381,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* CUSTOMERS TAB */}
-          {activeTab === 'customers' && (
+          {/* CUSTOMERS TAB – premium */}
+          {hasFeature(plan, 'crm') && activeTab === 'customers' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold">Customers</h3>
@@ -366,47 +410,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* INBOX TAB */}
-          {activeTab === 'inbox' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">Inbox</h3>
-              {messages.length === 0 ? (
-                <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
-                  <p className="text-gray-400">No messages yet</p>
-                  <p className="text-gray-500 text-sm mt-1">Messages from customers will appear here</p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div key={message.id} className={`bg-gray-900 rounded-xl p-4 border transition ${!message.is_read ? 'border-yellow-400/30' : 'border-gray-800'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium">{message.sender_name}</p>
-                      <div className="flex items-center gap-2">
-                        {!message.is_read && (
-                          <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">New</span>
-                        )}
-                        {!message.is_read && (
-                          <button
-                            onClick={() => markMessageRead(message.id)}
-                            className="text-gray-500 hover:text-white text-xs transition"
-                          >
-                            Mark read
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-gray-400 text-sm">{message.content}</p>
-                    {message.sender_phone && (
-                      <p className="text-gray-600 text-xs mt-1">Phone: {message.sender_phone}</p>
-                    )}
-                    <p className="text-gray-600 text-xs mt-2">{new Date(message.created_at).toLocaleDateString()}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* INVOICES TAB */}
-          {activeTab === 'invoices' && (
+          {/* INVOICES TAB – premium */}
+          {hasFeature(plan, 'invoices') && activeTab === 'invoices' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold">Invoices</h3>
@@ -438,7 +443,6 @@ export default function DashboardPage() {
                         {invoice.status}
                       </span>
                     </div>
-
                     <div className="bg-gray-800 rounded-lg p-3 mb-3">
                       {invoice.items.map((item, index) => (
                         <div key={index} className="flex items-center justify-between text-xs py-1">
@@ -451,7 +455,6 @@ export default function DashboardPage() {
                         <span className="text-xs font-bold text-green-400">N{invoice.total.toLocaleString()}</span>
                       </div>
                     </div>
-
                     {invoice.status === 'unpaid' && (
                       <div className="flex gap-2">
                         <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="bg-green-400 hover:bg-green-300 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition">
@@ -472,7 +475,6 @@ export default function DashboardPage() {
               )}
             </div>
           )}
-
         </div>
       )}
     </div>

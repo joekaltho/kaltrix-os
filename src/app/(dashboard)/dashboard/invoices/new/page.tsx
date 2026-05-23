@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { InvoiceItem } from '@/types'
+import PremiumGuard from '@/components/PremiumGuard'
 
-export default function NewInvoicePage() {
+function NewInvoiceForm() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -84,10 +85,9 @@ export default function NewInvoicePage() {
   return (
     <div className="min-h-screen bg-black text-white px-4 py-10">
       <div className="max-w-xl mx-auto">
-
         <div className="mb-8">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
-            Back to Dashboard
+            ← Back to Dashboard
           </Link>
         </div>
 
@@ -101,8 +101,7 @@ export default function NewInvoicePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
-          {/* Customer */}
+          {/* Customer Details */}
           <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
             <h2 className="font-semibold">Customer Details</h2>
             <div>
@@ -220,9 +219,16 @@ export default function NewInvoicePage() {
           >
             {loading ? 'Creating invoice...' : 'Create Invoice'}
           </button>
-
         </form>
       </div>
     </div>
+  )
+}
+
+export default function NewInvoicePage() {
+  return (
+    <PremiumGuard feature="invoices">
+      <NewInvoiceForm />
+    </PremiumGuard>
   )
 }
