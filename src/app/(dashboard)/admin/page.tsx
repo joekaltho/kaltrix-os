@@ -42,6 +42,10 @@ export default function AdminPage() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [search, setSearch] = useState('')
+  
+  // Email sending state
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<null | { message: string; success: number; failed: number }>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,7 +72,7 @@ export default function AdminPage() {
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [router, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -93,6 +97,31 @@ export default function AdminPage() {
   const handleWhatsApp = (phone: string) => {
     const number = phone.replace(/^0/, '234')
     window.open('https://wa.me/' + number, '_blank')
+  }
+
+  // Send waitlist emails
+  const sendWaitlistEmails = async () => {
+    if (!confirm('Are you sure you want to send registration emails to all waitlist users?')) return
+    
+    setSending(true)
+    setResult(null)
+    
+    try {
+      const response = await fetch('/api/send-waitlist-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ adminKey: 'your-secret-key-here' }), // Replace with env var
+      })
+      const data = await response.json()
+      setResult(data)
+    } catch (error) {
+      console.error('Error:', error)
+      setResult({ message: 'Error sending emails', success: 0, failed: 0 })
+    } finally {
+      setSending(false)
+    }
   }
 
   const noWebsite = businesses.filter(b => !b.website_url)
@@ -199,6 +228,30 @@ export default function AdminPage() {
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Send Email Card */}
+            <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6">
+              <h3 className="text-lg font-bold text-green-400 mb-4">📧 Send Launch Emails</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                This will send a "Registration is Open" email to everyone on the waitlist ({waitlist.length} users).
+              </p>
+              <button
+                onClick={sendWaitlistEmails}
+                disabled={sending || waitlist.length === 0}
+                className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-brandLg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? 'Sending...' : `Send to ${waitlist.length} Waitlist Users`}
+              </button>
+              {result && (
+                <div className="mt-4 p-4 bg-black/30 rounded-xl border border-gray-700">
+                  <p className="font-semibold text-green-400">{result.message}</p>
+                  <p className="text-sm text-gray-400">
+                    Successful: {result.success} | Failed: {result.failed}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Agency Opportunities */}
             <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6">
               <h3 className="text-lg font-bold text-green-400 mb-4">Agency Opportunities</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -220,6 +273,7 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Waitlist Preview */}
             <div className="bg-green-400/5 border border-green-400/20 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-green-400">Waitlist</h3>
@@ -246,6 +300,7 @@ export default function AdminPage() {
               )}
             </div>
 
+            {/* Recent Businesses */}
             <div>
               <h3 className="text-lg font-bold mb-4">Recent Businesses</h3>
               <div className="space-y-3">
