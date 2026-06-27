@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const features = [
   {
@@ -93,16 +94,6 @@ const FadeUp = ({ children, delay = 0, className = '' }: { children: React.React
   )
 }
 
-// Glitch text effect
-const GlitchText = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{children}</span>
-      <span className="absolute inset-0 text-brand/20 blur-[2px] -translate-x-1 -translate-y-0.5 animate-pulse-slow">{children}</span>
-    </span>
-  )
-}
-
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -128,7 +119,6 @@ export default function LandingPage() {
         <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/5 blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-brand/5 blur-3xl" style={{ animationDelay: '3s' }} />
-        {/* Interactive glow */}
         <div 
           className="absolute w-[600px] h-[600px] rounded-full bg-brand/5 blur-3xl transition-all duration-300 ease-out pointer-events-none"
           style={{
@@ -139,11 +129,11 @@ export default function LandingPage() {
       </div>
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-white/70">
+      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-white/70 dark:bg-ink/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <span className="text-base sm:text-lg font-black tracking-tight group cursor-pointer">
+          <Link href="/" className="text-base sm:text-lg font-black tracking-tight group">
             Kaltrix<span className="text-brand transition-all duration-300 group-hover:scale-110 inline-block">OS</span>
-          </span>
+          </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/discover" className="hidden md:block text-sm text-inkFaint hover:text-ink transition-all duration-300 px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg hover:scale-105">
               Discover
@@ -162,6 +152,7 @@ export default function LandingPage() {
                 </Link>
               </>
             )}
+            <ThemeToggle />
           </div>
         </div>
       </nav>
@@ -231,7 +222,7 @@ export default function LandingPage() {
           </FadeUp>
         </div>
 
-        {/* Dashboard preview with morphing animation */}
+        {/* Dashboard preview */}
         <FadeUp delay={500}>
           <div className="mt-14 sm:mt-20 rounded-2xl border border-border bg-white shadow-lift overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.01] group">
             <div className="bg-ivoryDim border-b border-border px-4 py-3 flex items-center gap-2">
@@ -248,7 +239,7 @@ export default function LandingPage() {
                     { label: "Today's Bookings", value: '7', sub: '+2 pending' },
                     { label: 'Revenue', value: '₦420K', sub: 'This month' },
                     { label: 'Messages', value: '3', sub: 'Unread' },
-                  ].map((stat, i) => (
+                  ].map((stat) => (
                     <div key={stat.label} className="bg-ivory rounded-xl p-3 sm:p-4 border border-border transition-all duration-300 hover:border-brand/20 hover:shadow-card hover:-translate-y-1 group">
                       <p className="text-inkFaint text-xs mb-1.5 font-medium uppercase tracking-wider">{stat.label}</p>
                       <p className="text-xl sm:text-2xl font-black text-ink">{stat.value}</p>
@@ -274,7 +265,7 @@ export default function LandingPage() {
         </FadeUp>
       </section>
 
-      {/* Stats band with scale animation */}
+      {/* Stats band */}
       <section className="relative bg-ink overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-transparent" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
@@ -284,7 +275,7 @@ export default function LandingPage() {
               { number: '<2%', label: 'Have functional websites' },
               { number: '98%', label: 'Economically invisible' },
               { number: '$1T+', label: 'Untapped opportunity' },
-            ].map((stat, i) => (
+            ].map((stat) => (
               <div key={stat.label} className="group transition-all duration-500 hover:scale-110">
                 <p className="text-3xl sm:text-4xl font-black text-brand mb-1">{stat.number}</p>
                 <p className="text-white/40 text-xs sm:text-sm group-hover:text-white/60 transition-colors duration-300">{stat.label}</p>
@@ -316,7 +307,7 @@ export default function LandingPage() {
                   'No trust signal for new customers',
                   'Manual invoicing wastes hours',
                   'Zero data on your own business',
-                ].map((item, i) => (
+                ].map((item) => (
                   <div key={item} className="flex items-center gap-3 group transition-all duration-300 hover:translate-x-1">
                     <div className="w-5 h-5 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
                       <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -349,7 +340,7 @@ export default function LandingPage() {
                   'TrustScore that builds credibility automatically',
                   'Bookings, CRM and invoices in one dashboard',
                   'Analytics to understand your business',
-                ].map((item, i) => (
+                ].map((item) => (
                   <div key={item} className="flex items-center gap-3 group transition-all duration-300 hover:translate-x-1">
                     <div className="w-5 h-5 rounded-full bg-brandBg border border-brand/20 flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
                       <svg className="w-3 h-3 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -365,7 +356,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features with staggered animation */}
+      {/* Features */}
       <section className="relative bg-ivoryDim border-y border-border overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-ivory via-transparent to-ivory opacity-50" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
@@ -487,7 +478,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Banner with morphing background */}
+      {/* CTA Banner */}
       <section className="relative bg-ink overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-transparent transition-all duration-1000 group-hover:from-brand/20" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.05),transparent_70%)] animate-pulse-slow" />

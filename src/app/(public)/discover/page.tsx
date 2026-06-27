@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Business {
   id: string
@@ -124,7 +125,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-white/70">
+      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-white/70 dark:bg-ink/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="text-base sm:text-lg font-black tracking-tight group">
             Kaltrix<span className="text-brand transition-all duration-300 group-hover:scale-110 inline-block">OS</span>
@@ -136,12 +137,13 @@ export default function DiscoverPage() {
             <Link href="/signup" className="text-xs sm:text-sm font-bold bg-ink hover:bg-inkMid text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-105">
               List Your Business
             </Link>
+            <ThemeToggle />
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <div className="border-b border-border bg-white relative overflow-hidden">
+      <div className="border-b border-border bg-white dark:bg-ivoryDim relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-brand/5 via-transparent to-transparent opacity-50" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-14 sm:py-20 text-center">
           <FadeUp>
@@ -210,7 +212,7 @@ export default function DiscoverPage() {
                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-300 border ${
                   selectedIndustry === industry
                     ? 'bg-ink text-white border-ink shadow-lg scale-105'
-                    : 'bg-white text-inkFaint border-border hover:border-inkFaint hover:text-ink hover:scale-105 hover:shadow-card'
+                    : 'bg-white dark:bg-ivoryDim text-inkFaint border-border hover:border-inkFaint hover:text-ink hover:scale-105 hover:shadow-card'
                 }`}
               >
                 {industry}
@@ -237,7 +239,7 @@ export default function DiscoverPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1,2,3,4,5,6].map((i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-border shadow-card animate-pulse">
+              <div key={i} className="bg-white dark:bg-ivoryDim rounded-2xl p-6 border border-border shadow-card animate-pulse">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-ivoryDim rounded-xl" />
                   <div className="w-10 h-5 bg-ivoryDim rounded-full" />
@@ -252,7 +254,7 @@ export default function DiscoverPage() {
         ) : filtered.length === 0 ? (
           <FadeUp>
             <div className="text-center py-24">
-              <div className="w-14 h-14 bg-white rounded-2xl border border-border shadow-card flex items-center justify-center mx-auto mb-4 transition-all duration-500 hover:scale-110 hover:shadow-lift">
+              <div className="w-14 h-14 bg-white dark:bg-ivoryDim rounded-2xl border border-border shadow-card flex items-center justify-center mx-auto mb-4 transition-all duration-500 hover:scale-110 hover:shadow-lift">
                 <svg className="w-6 h-6 text-inkFaint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -267,7 +269,7 @@ export default function DiscoverPage() {
               <FadeUp key={business.id} delay={index * 50}>
                 <Link
                   href={'/business/' + business.slug}
-                  className="group bg-white rounded-2xl p-6 border border-border shadow-card hover:shadow-lift hover:border-brand/30 hover:-translate-y-2 hover:scale-[1.01] transition-all duration-500 flex flex-col"
+                  className="group bg-white dark:bg-ivoryDim rounded-2xl p-6 border border-border shadow-card hover:shadow-lift hover:border-brand/30 hover:-translate-y-2 hover:scale-[1.01] transition-all duration-500 flex flex-col"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-12 h-12 rounded-xl bg-ivoryDim border border-border flex items-center justify-center text-base font-black text-inkFaint overflow-hidden flex-shrink-0 transition-all duration-500 group-hover:scale-110 group-hover:border-brand/30">
@@ -335,10 +337,10 @@ export default function DiscoverPage() {
                 </p>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-2 gradient-brand text-white font-black px-6 sm:px-8 py-3 rounded-xl transition-all duration-300 shadow-brand hover:shadow-brandLg hover:-translate-y-1 hover:scale-105 text-sm group-btn"
+                  className="inline-flex items-center gap-2 gradient-brand text-white font-black px-6 sm:px-8 py-3 rounded-xl transition-all duration-300 shadow-brand hover:shadow-brandLg hover:-translate-y-1 hover:scale-105 text-sm group"
                 >
                   List Your Business Free
-                  <svg className="w-4 h-4 transition-transform duration-300 group-btn-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </Link>
