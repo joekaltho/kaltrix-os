@@ -26,17 +26,55 @@ export default function RegisterPage() {
     if (!isRegistrationOpen) return
     setLoading(true)
     setError('')
-    const { data, error: signUpError } = await supabase.auth.signUp({ email: form.email, password: form.password })
-    if (signUpError) { setError(signUpError.message); setLoading(false); return }
+
+    // 1. Sign up the user
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          name: form.name,
+        },
+      },
+    })
+
+    if (signUpError) {
+      setError(signUpError.message)
+      setLoading(false)
+      return
+    }
+
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id, name: form.name, email: form.email, role: 'business',
-      })
-      if (profileError) { setError(profileError.message); setLoading(false); return }
-      router.push('/dashboard')
+      // 2. Create the profile with a small delay to ensure auth is complete
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            name: form.name,
+            email: form.email,
+            role: 'business',
+            created_at: new Date().toISOString(),
+          })
+
+        if (profileError) {
+          console.error('Profile error:', profileError)
+          setError('Account created but profile setup failed. Please try signing in.')
+          setLoading(false)
+          return
+        }
+
+        // 3. Redirect to dashboard
+        router.push('/dashboard')
+      } catch (err) {
+        console.error('Error:', err)
+        setError('Something went wrong. Please try again.')
+        setLoading(false)
+      }
     }
   }
 
+  // Registration closed
   if (!isRegistrationOpen) {
     return (
       <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
@@ -181,4 +219,4 @@ export default function RegisterPage() {
       </div>
     </div>
   )
-}
+} 
