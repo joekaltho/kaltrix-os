@@ -1,8 +1,8 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
 export async function proxy(request: NextRequest) {
-  // Skip auth check for now – just pass through
-  return NextResponse.next({ request })
+  return updateSession(request)
 }
 
 export const config = {

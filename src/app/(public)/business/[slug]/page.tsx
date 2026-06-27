@@ -142,7 +142,7 @@ export default function BusinessProfilePage() {
         <Link href="/discover" className="text-xl font-bold">
           Kaltrix<span className="text-green-400">OS</span>
         </Link>
-        <Link href="/register" className="bg-green-400 hover:bg-green-300 text-black text-sm font-semibold px-4 py-2 rounded-lg transition">
+        <Link href="/signup" className="bg-green-400 hover:bg-green-300 text-black text-sm font-semibold px-4 py-2 rounded-lg transition">
           List Your Business
         </Link>
       </nav>

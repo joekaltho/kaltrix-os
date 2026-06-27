@@ -37,13 +37,13 @@ export interface Customer {
 export interface Booking {
   id: string
   business_id: string
-  customer_id?: string
-  customer_name: string
+  user_id?: string
+  customer_name?: string
+  customer_email?: string
   customer_phone?: string
-  service: string
-  date: string
-  time: string
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  service_description?: string
+  booking_date_time?: string
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
   notes?: string
   created_at: string
 }
