@@ -27,54 +27,43 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    // 1. Sign up the user
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        data: {
-          name: form.name,
-        },
+        data: { name: form.name },
       },
     })
 
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
+    if (signUpError) { setError(signUpError.message); setLoading(false); return }
+    if (!data.user) { setError('Signup failed — please try again.'); setLoading(false); return }
 
-    if (data.user) {
-      // 2. Create the profile with a small delay to ensure auth is complete
-      try {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            name: form.name,
-            email: form.email,
-            role: 'business',
-            created_at: new Date().toISOString(),
-          })
-
-        if (profileError) {
-          console.error('Profile error:', profileError)
-          setError('Account created but profile setup failed. Please try signing in.')
-          setLoading(false)
-          return
-        }
-
-        // 3. Redirect to dashboard
-        router.push('/dashboard')
-      } catch (err) {
-        console.error('Error:', err)
-        setError('Something went wrong. Please try again.')
-        setLoading(false)
+    if (data.session) {
+      // Email auto-confirmed — insert profile and go straight to onboarding
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        name: form.name,
+        email: form.email,
+        role: 'business',
+      })
+      if (profileError) {
+        console.error('Profile insert error:', profileError.message)
       }
+      router.push('/dashboard/create-business')
+    } else {
+      // Email confirmation required — save pending profile data and show confirm screen
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingProfile', JSON.stringify({
+          id: data.user.id,
+          name: form.name,
+          email: form.email,
+        }))
+      }
+      setLoading(false)
+      router.push('/signup/confirm')
     }
   }
 
-  // Registration closed
   if (!isRegistrationOpen) {
     return (
       <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
@@ -219,4 +208,4 @@ export default function RegisterPage() {
       </div>
     </div>
   )
-} 
+}
