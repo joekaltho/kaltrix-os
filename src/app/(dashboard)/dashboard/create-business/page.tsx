@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { calculateTrustScore } from '@/lib/trust-score'
 
 const industries = [
   'Restaurant & Food', 'Fashion & Clothing', 'Health & Wellness',
@@ -19,6 +20,7 @@ export default function CreateBusinessPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState('')
@@ -48,17 +50,15 @@ export default function CreateBusinessPage() {
     return `${base}-${Date.now().toString(36)}`
   }
 
-  const calculateTrustScore = () => {
-    let score = 0
-    if (form.business_name) score += 10
-    if (form.industry) score += 10
-    if (form.city) score += 10
-    if (form.phone) score += 15
-    if (form.website_url) score += 20
-    if (form.description && form.description.length > 100) score += 15
-    if (logoFile) score += 20
-    return score
-  }
+  const getTrustScore = () => calculateTrustScore({
+    business_name: form.business_name,
+    industry: form.industry,
+    city: form.city,
+    phone: form.phone,
+    website_url: form.website_url,
+    description: form.description,
+    has_logo: !!logoFile,
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,7 +93,7 @@ export default function CreateBusinessPage() {
       }
     }
 
-    const trust_score = calculateTrustScore()
+    const trust_score = getTrustScore()
     const slug = generateSlug(form.business_name)
 
     const { error: insertError } = await supabase.from('businesses').insert({
@@ -111,7 +111,30 @@ export default function CreateBusinessPage() {
       return
     }
 
-    router.push('/dashboard')
+    setSuccess(true)
+    setTimeout(() => router.push('/dashboard'), 2000)
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-surface rounded-2xl border border-border shadow-lift p-12">
+            <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-brand">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-black text-ink mb-2">Profile Created!</h1>
+            <p className="text-inkFaint text-sm mb-1">Your business is now live on KaltrixOS.</p>
+            <p className="text-inkFaint text-sm">Taking you to your dashboard...</p>
+            <div className="mt-6 flex justify-center">
+              <span className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -244,4 +267,3 @@ export default function CreateBusinessPage() {
     </div>
   )
 }
-

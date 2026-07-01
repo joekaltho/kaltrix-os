@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { calculateTrustScore } from '@/lib/trust-score'
 
 const industries = [
   'Restaurant & Food',
@@ -69,17 +70,15 @@ export default function EditProfilePage() {
     fetchBusiness()
   }, [])
 
-  const calculateTrustScore = () => {
-    let score = 0
-    if (form.business_name) score += 10
-    if (form.industry) score += 10
-    if (form.city) score += 10
-    if (form.phone) score += 15
-    if (form.website_url) score += 20
-    if (form.description && form.description.length > 100) score += 15
-    if (form.logo_url || logoFile) score += 20
-    return score
-  }
+  const getTrustScore = () => calculateTrustScore({
+    business_name: form.business_name,
+    industry: form.industry,
+    city: form.city,
+    phone: form.phone,
+    website_url: form.website_url,
+    description: form.description,
+    has_logo: !!(form.logo_url || logoFile),
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -109,7 +108,7 @@ export default function EditProfilePage() {
       }
     }
 
-    const trust_score = calculateTrustScore()
+    const trust_score = getTrustScore()
 
     const { error: updateError } = await supabase
       .from('businesses')
@@ -129,194 +128,127 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-green-400 text-xl animate-pulse">Loading...</div>
+      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white px-4 py-10">
-      <div className="max-w-2xl mx-auto">
+  const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
+  const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
-              Back to Dashboard
-            </Link>
-            <h1 className="text-2xl font-bold mt-2">Edit Business Profile</h1>
-          </div>
-          <div className="text-right">
-            <p className="text-gray-400 text-xs mb-1">TrustScore Preview</p>
-            <p className="text-3xl font-black text-green-400">{calculateTrustScore()}</p>
-          </div>
+  return (
+    <div className="min-h-screen bg-ivory font-sans">
+      <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
+          <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
+        </div>
+      </nav>
+
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-black text-ink">Edit Business Profile</h1>
+          <p className="text-inkFaint text-sm mt-1">Keep your profile complete for a higher TrustScore</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 mb-6 text-sm">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
         )}
 
         {saved && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg p-3 mb-6 text-sm">
-            Profile saved successfully!
+          <div className="bg-brandBg border border-brand/20 text-brand rounded-xl p-4 mb-6 text-sm font-semibold flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+            Profile saved successfully
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* Logo */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <h2 className="font-semibold mb-4">Business Logo</h2>
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider mb-4">Business Logo</h2>
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden">
+              <div className="w-20 h-20 rounded-xl bg-ivoryDim border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoFile ? (
                   <img src={URL.createObjectURL(logoFile)} alt="Logo" className="w-full h-full object-cover" />
                 ) : form.logo_url ? (
                   <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-gray-500 text-sm">No logo</span>
+                  <svg className="w-6 h-6 text-inkFaint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
                 )}
               </div>
               <div>
-                <label className="cursor-pointer bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white text-sm px-4 py-2 rounded-lg transition inline-block">
-                  Upload New Logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                  />
+                <label className="cursor-pointer inline-flex items-center gap-2 bg-ivory hover:bg-ivoryDim border border-border text-ink text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {form.logo_url ? 'Change Logo' : 'Upload Logo'}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
                 </label>
-                <p className="text-gray-500 text-xs mt-2">PNG, JPG up to 5MB</p>
+                <p className="text-inkFaint text-xs mt-2">PNG or JPG, max 5MB</p>
               </div>
             </div>
           </div>
 
           {/* Basic Info */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-            <h2 className="font-semibold">Basic Information</h2>
-
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Basic Information</h2>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Business Name *</label>
-              <input
-                type="text"
-                name="business_name"
-                value={form.business_name}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
-              />
+              <label className={labelClass}>Business Name *</label>
+              <input type="text" name="business_name" value={form.business_name} onChange={handleChange} required className={inputClass} />
             </div>
-
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Industry *</label>
-              <select
-                name="industry"
-                value={form.industry}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
-              >
+              <label className={labelClass}>Industry *</label>
+              <select name="industry" value={form.industry} onChange={handleChange} required className={inputClass}>
                 <option value="">Select industry</option>
-                {industries.map((ind) => (
-                  <option key={ind} value={ind}>{ind}</option>
-                ))}
+                {industries.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
               </select>
             </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">City *</label>
-              <input
-                type="text"
-                name="city"
-                value={form.city}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>City *</label>
+                <input type="text" name="city" value={form.city} onChange={handleChange} required className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Phone Number *</label>
+                <input type="tel" name="phone" value={form.phone} onChange={handleChange} required className={inputClass} />
+              </div>
             </div>
           </div>
 
           {/* Online Presence */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-            <h2 className="font-semibold">Online Presence</h2>
-
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Online Presence</h2>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">
-                Website URL
-                <span className="text-green-400 ml-2 text-xs">+20 TrustScore</span>
-              </label>
-              <input
-                type="url"
-                name="website_url"
-                value={form.website_url}
-                onChange={handleChange}
-                placeholder="https://yourbusiness.com"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
-              />
-              {!form.website_url && (
-                <p className="text-yellow-500 text-xs mt-1">No website — this lowers your TrustScore</p>
-              )}
+              <label className={labelClass}>Website URL</label>
+              <input type="url" name="website_url" value={form.website_url} onChange={handleChange} placeholder="https://yourbusiness.com" className={inputClass} />
             </div>
-
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">
-                Business Description
-                <span className="text-green-400 ml-2 text-xs">+15 TrustScore</span>
-              </label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Tell customers what your business does..."
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition resize-none"
-              />
-              <p className="text-gray-500 text-xs mt-1">
-                {form.description.length}/100 characters minimum for TrustScore boost
-              </p>
+              <label className={labelClass}>Business Description</label>
+              <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="Tell customers what your business does..." className={inputClass + ' resize-none'} />
+              <p className="text-inkFaint text-xs mt-1.5">{form.description.length} characters</p>
             </div>
           </div>
 
-          {/* TrustScore Preview */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <h2 className="font-semibold mb-3">TrustScore Preview</h2>
-            <div className="flex items-center gap-4">
-              <div className="text-5xl font-black text-green-400">{calculateTrustScore()}</div>
-              <div>
-                <p className="text-gray-400 text-sm">out of 100</p>
-                <p className="text-gray-500 text-xs mt-1">Complete your profile to increase your score</p>
-              </div>
-            </div>
-            <div className="mt-4 bg-gray-800 rounded-full h-2">
-              <div
-                className="bg-green-400 h-2 rounded-full transition-all duration-500"
-                style={{ width: calculateTrustScore() + '%' }}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full bg-green-400 hover:bg-green-300 text-black font-semibold rounded-lg px-4 py-4 transition disabled:opacity-50 text-lg"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button type="submit" disabled={saving} className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2">
+            {saving ? (
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+            ) : 'Save Changes'}
           </button>
+
+          <div className="flex items-center justify-center gap-2 py-1">
+            <svg className="w-3.5 h-3.5 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <p className="text-inkFaint text-xs">
+              Your <span className="text-ink font-semibold">TrustScore</span> is recalculated automatically by our AI engine on save
+            </p>
+          </div>
 
         </form>
       </div>

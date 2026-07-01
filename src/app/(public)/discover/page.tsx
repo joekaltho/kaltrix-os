@@ -26,7 +26,6 @@ const industries = [
   'Entertainment', 'Agriculture', 'Construction', 'Other',
 ]
 
-// Fade-up animation component
 const FadeUp = ({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) => {
   const [isVisible, setIsVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -147,10 +146,10 @@ export default function DiscoverPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-brand/5 via-transparent to-transparent opacity-50" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-14 sm:py-20 text-center">
           <FadeUp>
-            <div className="inline-flex items-center gap-2 bg-brandBg border border-brand/20 rounded-full px-3 sm:px-4 py-1.5 mb-6 hover:border-brand/40 transition-all duration-300 hover:scale-105">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-              <span className="text-brand text-xs font-bold tracking-wide uppercase">
-                {businesses.length} verified businesses
+            <div className="inline-flex items-center gap-2 bg-brand border border-brand/30 rounded-full px-3 sm:px-4 py-1.5 mb-6 hover:border-brand/60 transition-all duration-300 hover:scale-105">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse-slow" />
+              <span className="text-white text-xs font-bold tracking-wide uppercase">
+                {businesses.length} listed businesses
               </span>
             </div>
           </FadeUp>
@@ -211,8 +210,8 @@ export default function DiscoverPage() {
                 onClick={() => setSelectedIndustry(industry)}
                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-300 border ${
                   selectedIndustry === industry
-                    ? 'bg-ink text-white border-ink shadow-lg scale-105'
-                    : 'bg-white dark:bg-ivoryDim text-inkFaint border-border hover:border-inkFaint hover:text-ink hover:scale-105 hover:shadow-card'
+                    ? 'bg-brand text-white border-brand shadow-lg scale-105'
+                    : 'bg-white dark:bg-ivoryDim text-inkFaint border-border hover:border-brand hover:text-brand hover:scale-105 hover:shadow-card'
                 }`}
               >
                 {industry}
@@ -337,7 +336,7 @@ export default function DiscoverPage() {
                 </p>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-2 gradient-brand text-white font-black px-6 sm:px-8 py-3 rounded-xl transition-all duration-300 shadow-brand hover:shadow-brandLg hover:-translate-y-1 hover:scale-105 text-sm group"
+                  className="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-white font-black px-6 sm:px-8 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-brand/30 hover:-translate-y-1 hover:scale-105 text-sm group"
                 >
                   List Your Business Free
                   <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
