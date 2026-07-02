@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function ForgotPasswordPage() {
-  // ❌ Remove this line: const supabase = createClient()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -14,92 +13,97 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    // ✅ Create client lazily only when needed
     const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
-
-    const redirectUrl = `${window.location.origin}/reset-password`
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
-
-    if (resetError) {
-      setError(resetError.message)
-      setLoading(false)
-      return
-    }
-
+    if (resetError) { setError(resetError.message); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
+ // At the top of the component, add:
+const searchParams = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search)
+  : null
+const urlError = searchParams?.get('error')
 
+// Then show a message if urlError exists:
+{(error || urlError) && (
+  <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-4 mb-5 text-sm">
+    {urlError === 'expired'
+      ? 'Your reset link has expired. Please request a new one below.'
+      : urlError === 'denied'
+      ? 'Access was denied. Please request a new reset link.'
+      : error || 'Something went wrong. Please try again.'}
+  </div>
+)}
   return (
-    // ... your JSX remains exactly the same ...
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Kaltrix<span className="text-green-400">OS</span>
-          </h1>
-          <p className="text-gray-400 mt-2">Africa's Business Operating System</p>
+
+        <div className="text-center mb-10">
+          <Link href="/" className="text-2xl font-black text-ink">
+            Kaltrix<span className="text-brand">OS</span>
+          </Link>
         </div>
 
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+        <div className="bg-surface rounded-2xl border border-border shadow-lift p-8 sm:p-10">
           {sent ? (
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-400/10 border border-green-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <div className="w-8 h-8 bg-green-400 rounded-full" />
+              <div className="w-14 h-14 bg-brandBg border border-brand/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <svg className="w-7 h-7 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
-              <p className="text-gray-400 text-sm mb-6">
-                We sent a password reset link to <span className="text-white">{email}</span>.
-                Check your inbox and click the link to reset your password.
+              <h2 className="text-xl font-black text-ink mb-2">Check your email</h2>
+              <p className="text-inkFaint text-sm leading-relaxed mb-6">
+                We sent a reset link to <span className="text-ink font-semibold">{email}</span>. Click it to set a new password.
               </p>
-              <Link href="/login" className="text-green-400 hover:underline text-sm">
-                Back to Login
+              <Link href="/login" className="text-brand text-sm font-bold hover:underline">
+                Back to Sign In
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-white mb-2">Forgot your password?</h2>
-              <p className="text-gray-400 text-sm mb-6">
-                Enter your email and we will send you a reset link.
-              </p>
+              <h2 className="text-xl font-black text-ink mb-1">Forgot your password?</h2>
+              <p className="text-inkFaint text-sm mb-8">Enter your email and we will send you a reset link.</p>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 mb-6 text-sm">
-                  {error}
-                </div>
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">{error}</div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-400 mb-1 block">Email Address</label>
+                  <label className="text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
+                    className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-green-400 hover:bg-green-300 text-black font-semibold rounded-lg px-4 py-3 transition disabled:opacity-50"
+                  className="w-full gradient-brand text-white font-black py-3.5 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  {loading ? (
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending...</>
+                  ) : 'Send Reset Link'}
                 </button>
               </form>
 
-              <p className="text-center text-gray-400 text-sm mt-6">
-                Remember your password?{' '}
-                <Link href="/login" className="text-green-400 hover:underline">
-                  Sign in
-                </Link>
-              </p>
+              <div className="mt-8 pt-6 border-t border-border text-center">
+                <p className="text-inkFaint text-sm">
+                  Remember your password?{' '}
+                  <Link href="/login" className="text-brand font-bold hover:underline">Sign in</Link>
+                </p>
+              </div>
             </>
           )}
         </div>

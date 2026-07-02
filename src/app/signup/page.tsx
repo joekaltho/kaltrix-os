@@ -32,6 +32,7 @@ export default function RegisterPage() {
       password: form.password,
       options: {
         data: { name: form.name },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -202,7 +203,10 @@ export default function RegisterPage() {
           </div>
 
           <p className="text-center text-inkFaint text-xs mt-4">
-            By creating an account you agree to our terms of service.
+            By creating an account you agree to our{' '}
+            <Link href="/terms" className="text-brand hover:underline font-medium">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-brand hover:underline font-medium">Privacy Policy</Link>.
           </p>
         </div>
       </div>
