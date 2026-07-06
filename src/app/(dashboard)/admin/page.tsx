@@ -113,6 +113,7 @@ export default function AdminPage() {
     setTrustInput(prev => { const n = { ...prev }; delete n[businessId]; return n })
   }
 
+  // eslint-disable-next-line react-hooks/immutability -- click handler, not render; standard navigation
   const handleCall = (phone: string) => { window.location.href = 'tel:' + phone }
   const handleWhatsApp = (phone: string) => {
     const number = phone.replace(/^0/, '234')

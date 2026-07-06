@@ -2,7 +2,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // If you have no special settings, just use an empty object
+  turbopack: {
+    root: process.cwd(),
+  },
 }
 
 export default nextConfig

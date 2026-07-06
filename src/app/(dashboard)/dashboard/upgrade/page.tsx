@@ -109,6 +109,7 @@ export default function UpgradePage() {
   // Load Paystack inline script
   useEffect(() => {
     if (document.getElementById('paystack-script')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- script already present from a prior mount; one-time sync, not a cascading chain
       setPaystackLoaded(true)
       return
     }
@@ -182,6 +183,7 @@ export default function UpgradePage() {
       email: userEmail,
       amount: price * 100, // Paystack uses kobo
       currency: 'NGN',
+      // eslint-disable-next-line react-hooks/purity -- runs inside a click handler, not during render
       ref: `kaltrix-${businessId}-${Date.now()}`,
       metadata: {
         custom_fields: [

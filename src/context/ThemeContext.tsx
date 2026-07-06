@@ -16,6 +16,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Intentional: this "mounted" flag gates rendering until after hydration
+    // so the server-rendered markup matches the client on first paint, then
+    // swaps in the persisted/OS theme. Deferring it to a second effect would
+    // just move the same setState elsewhere.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     const savedTheme = localStorage.getItem('theme') as Theme | null
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches

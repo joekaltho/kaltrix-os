@@ -202,7 +202,7 @@ export default function TermsPage() {
 
         <Section title="10. Disclaimers and Limitation of Liability">
           <p>
-            {PRODUCT} is provided "as is" without warranties of any kind. We do not guarantee that
+            {PRODUCT} is provided &quot;as is&quot; without warranties of any kind. We do not guarantee that
             the platform will be uninterrupted, error-free, or that it will meet your specific business requirements.
           </p>
           <p>

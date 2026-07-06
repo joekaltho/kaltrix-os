@@ -166,7 +166,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             Public reviews left by customers on your profile may remain on the platform after account deletion
-            as they form part of the platform's public record. We will remove identifying information from them upon request.
+            as they form part of the platform&apos;s public record. We will remove identifying information from them upon request.
           </p>
         </Section>
 
@@ -239,7 +239,7 @@ export default function PrivacyPage() {
         <Section title="11. Changes to This Policy">
           <p>
             We may update this Privacy Policy from time to time. We will notify registered users by
-            email before material changes take effect. The "Last updated" date at the top of this
+            email before material changes take effect. The &quot;Last updated&quot; date at the top of this
             page reflects when the policy was last revised.
           </p>
         </Section>

@@ -78,9 +78,9 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-xl font-black text-ink mb-2">Registration Opening Soon</h1>
             <p className="text-inkFaint text-sm mb-6">KaltrixOS launches June 22, 2026. Join the waitlist to be first in.</p>
-            <a href="/#waitlist" className="block gradient-brand text-white font-bold py-3 rounded-xl transition shadow-brand text-sm mb-3">
+            <Link href="/#waitlist" className="block gradient-brand text-white font-bold py-3 rounded-xl transition shadow-brand text-sm mb-3">
               Join the Waitlist →
-            </a>
+            </Link>
             <Link href="/login" className="text-brand text-sm hover:underline font-medium">
               Already have an account? Sign in
             </Link>

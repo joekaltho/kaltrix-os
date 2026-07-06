@@ -17,13 +17,13 @@ export default function ConfirmEmailPage() {
           </div>
           <h1 className="text-xl font-black text-ink mb-2">Check your email</h1>
           <p className="text-inkFaint text-sm mb-6 leading-relaxed">
-            We sent you a confirmation link. Click it to verify your account — you'll be taken straight to your dashboard.
+            We sent you a confirmation link. Click it to verify your account — you&apos;ll be taken straight to your dashboard.
           </p>
           <Link href="/login" className="block gradient-brand text-white font-black py-3 rounded-xl transition shadow-brand text-sm mb-3">
             Go to Sign In
           </Link>
           <p className="text-inkFaint text-xs">
-            Didn't get it? Check your spam folder or{' '}
+            Didn&apos;t get it? Check your spam folder or{' '}
             <Link href="/signup" className="text-brand hover:underline font-medium">try again</Link>
           </p>
         </div>

@@ -70,31 +70,72 @@ function TrustBadge({ score }: { score: number }) {
   )
 }
 
+// Isolated so the mousemove-driven state update only re-renders this small
+// glow element, not the entire page (grid, filters, FadeUp observers, etc).
+// Also throttled to one update per animation frame instead of one per pixel.
+function MouseGlow() {
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const frame = useRef<number | null>(null)
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (frame.current !== null) return
+      frame.current = requestAnimationFrame(() => {
+        setPosition({ x: e.clientX, y: e.clientY })
+        frame.current = null
+      })
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      if (frame.current !== null) cancelAnimationFrame(frame.current)
+    }
+  }, [])
+
+  return (
+    <div
+      className="absolute w-[500px] h-[500px] rounded-full bg-brand/5 blur-3xl transition-all duration-300 ease-out pointer-events-none"
+      style={{
+        left: `${position.x - 250}px`,
+        top: `${position.y - 250}px`,
+      }}
+    />
+  )
+}
+
 export default function DiscoverPage() {
   const supabase = createClient()
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [selectedIndustry, setSelectedIndustry] = useState('All')
   const [selectedCity, setSelectedCity] = useState('')
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
+  const BUSINESSES_PAGE_SIZE = 60
 
   useEffect(() => {
     const fetchBusinesses = async () => {
-      const { data } = await supabase
+      setError('')
+      const { data, error: fetchError } = await supabase
         .from('businesses')
-        .select('*')
+        // Explicit column list: never widen this to '*'. A '*' select ships
+        // every column in the table to anonymous visitors, including any
+        // internal-only fields added later that aren't in the Business type.
+        .select('id, business_name, industry, city, phone, website_url, trust_score, is_verified, slug, logo_url, description')
         .order('trust_score', { ascending: false })
-      setBusinesses(data || [])
+        .limit(BUSINESSES_PAGE_SIZE)
+
+      if (fetchError) {
+        console.error('Failed to load businesses:', fetchError)
+        setError('Something went wrong loading businesses. Please refresh the page.')
+        setBusinesses([])
+      } else {
+        setBusinesses(data || [])
+      }
       setLoading(false)
     }
     fetchBusinesses()
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   const filtered = businesses.filter(b => {
@@ -114,13 +155,7 @@ export default function DiscoverPage() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand/5 blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
-        <div 
-          className="absolute w-[500px] h-[500px] rounded-full bg-brand/5 blur-3xl transition-all duration-300 ease-out pointer-events-none"
-          style={{
-            left: `${mousePosition.x - 250}px`,
-            top: `${mousePosition.y - 250}px`,
-          }}
-        />
+        <MouseGlow />
       </div>
 
       {/* Nav */}
@@ -234,6 +269,14 @@ export default function DiscoverPage() {
           </div>
         </FadeUp>
 
+        {error && (
+          <FadeUp>
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm text-center">
+              {error}
+            </div>
+          </FadeUp>
+        )}
+
         {/* Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -250,7 +293,7 @@ export default function DiscoverPage() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && !error ? (
           <FadeUp>
             <div className="text-center py-24">
               <div className="w-14 h-14 bg-white dark:bg-ivoryDim rounded-2xl border border-border shadow-card flex items-center justify-center mx-auto mb-4 transition-all duration-500 hover:scale-110 hover:shadow-lift">

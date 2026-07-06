@@ -9,6 +9,9 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const urlError = searchParams?.get('error')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -22,22 +25,7 @@ export default function ForgotPasswordPage() {
     setSent(true)
     setLoading(false)
   }
- // At the top of the component, add:
-const searchParams = typeof window !== 'undefined'
-  ? new URLSearchParams(window.location.search)
-  : null
-const urlError = searchParams?.get('error')
 
-// Then show a message if urlError exists:
-{(error || urlError) && (
-  <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-4 mb-5 text-sm">
-    {urlError === 'expired'
-      ? 'Your reset link has expired. Please request a new one below.'
-      : urlError === 'denied'
-      ? 'Access was denied. Please request a new reset link.'
-      : error || 'Something went wrong. Please try again.'}
-  </div>
-)}
   return (
     <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -69,8 +57,14 @@ const urlError = searchParams?.get('error')
               <h2 className="text-xl font-black text-ink mb-1">Forgot your password?</h2>
               <p className="text-inkFaint text-sm mb-8">Enter your email and we will send you a reset link.</p>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">{error}</div>
+              {(error || urlError) && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-3 mb-5 text-sm">
+                  {urlError === 'expired'
+                    ? 'Your reset link has expired. Please request a new one below.'
+                    : urlError === 'denied'
+                    ? 'Access was denied. Please request a new reset link.'
+                    : error || 'Something went wrong. Please try again.'}
+                </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">

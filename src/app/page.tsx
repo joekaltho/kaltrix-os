@@ -513,7 +513,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="text-center sm:text-left">
             <span className="text-base font-black">Kaltrix<span className="text-brand">OS</span></span>
-            <p className="text-inkFaint text-xs mt-0.5">Africa's Business Operating System</p>
+            <p className="text-inkFaint text-xs mt-0.5">Africa&apos;s Business Operating System</p>
           </div>
           <div className="flex items-center gap-5 text-sm text-inkFaint">
             <Link href="/discover" className="hover:text-ink transition-all duration-300 hover:underline underline-offset-4 hover:scale-105">Discover</Link>

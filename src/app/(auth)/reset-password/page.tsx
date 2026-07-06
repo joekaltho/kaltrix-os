@@ -1,86 +1,152 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse, type NextRequest } from 'next/server'
+'use client'
 
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type')
-  const next = searchParams.get('next') || '/dashboard'
-  const error = searchParams.get('error')
-  const errorCode = searchParams.get('error_code')
-  const errorDescription = searchParams.get('error_description')
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-  // Handle Supabase error redirects (expired links, access denied etc.)
-  if (error) {
-    const message = errorCode === 'otp_expired'
-      ? 'expired'
-      : errorCode === 'access_denied'
-      ? 'denied'
-      : 'invalid'
-    return NextResponse.redirect(`${origin}/forgot-password?error=${message}`)
+export default function ResetPasswordPage() {
+  const router = useRouter()
+  const [checkingSession, setCheckingSession] = useState(true)
+  const [hasSession, setHasSession] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data } = await supabase.auth.getSession()
+      setHasSession(!!data.session)
+      setCheckingSession(false)
+    }
+    checkSession()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    setLoading(false)
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    setDone(true)
+    setTimeout(() => router.push('/dashboard'), 2000)
   }
 
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {}
-        },
-      },
-    }
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <Link href="/" className="text-2xl font-black text-ink">
+            Kaltrix<span className="text-brand">OS</span>
+          </Link>
+        </div>
+
+        <div className="bg-surface rounded-2xl border border-border shadow-lift p-8 sm:p-10">
+          {!hasSession ? (
+            <div className="text-center">
+              <h2 className="text-xl font-black text-ink mb-2">Reset link invalid or expired</h2>
+              <p className="text-inkFaint text-sm leading-relaxed mb-6">
+                Please request a new password reset link.
+              </p>
+              <Link href="/forgot-password" className="text-brand text-sm font-bold hover:underline">
+                Back to Forgot Password
+              </Link>
+            </div>
+          ) : done ? (
+            <div className="text-center">
+              <h2 className="text-xl font-black text-ink mb-2">Password updated</h2>
+              <p className="text-inkFaint text-sm leading-relaxed">
+                Redirecting you to your dashboard&hellip;
+              </p>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-xl font-black text-ink mb-1">Set a new password</h2>
+              <p className="text-inkFaint text-sm mb-8">Choose a strong password for your account.</p>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    placeholder="••••••••"
+                    className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    placeholder="••••••••"
+                    className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full gradient-brand text-white font-black py-3.5 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Password'
+                  )}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   )
-
-  let user = null
-
-  if (code) {
-    const { data, err } = await supabase.auth.exchangeCodeForSession(code) as any
-    if (!err) user = data?.user
-  }
-
-  if (token_hash && type) {
-    const { data, err } = await supabase.auth.verifyOtp({ token_hash, type: type as any }) as any
-    if (!err) user = data?.user
-  }
-
-  if (user) {
-    // If this is a password reset flow, go straight to reset page
-    if (next === '/reset-password' || type === 'recovery') {
-      return NextResponse.redirect(`${origin}/reset-password`)
-    }
-
-    // Check profile
-    const { data: existingProfile } = await supabase
-      .from('profiles').select('id').eq('id', user.id).single()
-
-    if (!existingProfile) {
-      const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User'
-      await supabase.from('profiles').insert({
-        id: user.id,
-        name,
-        email: user.email,
-        role: 'business',
-      })
-    }
-
-    const { data: business } = await supabase
-      .from('businesses').select('id').eq('user_id', user.id).single()
-
-    const redirectTo = next !== '/dashboard'
-      ? next
-      : business ? '/dashboard' : '/dashboard/create-business'
-
-    return NextResponse.redirect(`${origin}${redirectTo}`)
-  }
-
-  return NextResponse.redirect(`${origin}/forgot-password?error=expired`)
 }

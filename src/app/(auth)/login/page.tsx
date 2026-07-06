@@ -41,7 +41,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 rounded-full px-3 py-1 mb-10">
             <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-            <span className="text-brand text-xs font-semibold tracking-wide">Africa's Business OS</span>
+            <span className="text-brand text-xs font-semibold tracking-wide">Africa&apos;s Business OS</span>
           </div>
           <h2 className="text-4xl font-black text-white leading-tight mb-4">
             Every verified business<br />deserves to be found.
