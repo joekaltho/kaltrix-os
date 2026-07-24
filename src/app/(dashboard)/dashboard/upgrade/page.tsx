@@ -147,21 +147,53 @@ export default function UpgradePage() {
     fetchData()
   }, [])
 
-  const handlePaymentSuccess = useCallback(async (planKey: string, reference: string) => {
-    // Verify payment on your backend or directly update subscription
-    // For now we trust the Paystack callback (add server-side verification before launch)
-    const { error } = await supabase.from('subscriptions').upsert({
-      business_id: businessId,
-      plan: planKey,
-      status: 'active',
-      updated_at: new Date().toISOString(),
-    })
-    if (!error) {
-      setCurrentPlan(planKey)
-      router.push('/dashboard?upgraded=true')
-    } else {
-      alert('Payment successful but subscription update failed. Please contact kaltrix.ng@gmail.com with reference: ' + reference)
+const handlePaymentSuccess = useCallback(async (planKey: string, billingCycle: BillingCycle, reference: string) => {
+    try {
+      const res = await fetch('/api/paystack/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference, planKey, billing: billingCycle, businessId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setCurrentPlan(planKey)
+        router.push('/dashboard?upgraded=true')
+      } else {
+        alert('Payment verification failed. Please contact kaltrix.ng@gmail.com with reference: ' + reference)
+      }
+    } catch {
+      alert('Payment successful but verification failed. Please contact kaltrix.ng@gmail.com with reference: ' + reference)
     }
+    setProcessingPlan('')
+  }, [businessId, router])
+    const POLL_INTERVAL_MS = 2000
+    const MAX_ATTEMPTS = 15 // ~30s
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('plan, status')
+        .eq('business_id', businessId)
+        .eq('status', 'active')
+        .single()
+
+      if (subscription?.plan === planKey) {
+        setCurrentPlan(planKey)
+        router.push('/dashboard?upgraded=true')
+        setProcessingPlan('')
+        return
+      }
+    }
+
+    // Webhook hasn't landed yet after ~30s — payment likely still succeeded
+    // (Paystack webhooks can lag), so don't tell the user it failed.
+    alert(
+      "Payment received — we're confirming it now, this can take a minute. " +
+      'Your plan will update automatically. If it doesn\'t within a few minutes, ' +
+      'contact kaltrix.ng@gmail.com with reference: ' + reference
+    )
     setProcessingPlan('')
   }, [businessId, router, supabase])
 
