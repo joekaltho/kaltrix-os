@@ -23,6 +23,8 @@ function NavIcon({ type }: { type: string }) {
     upgrade: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />,
     discover: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />,
     signout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />,
+    pay: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
+    ai: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />,
   }
   return (
     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,6 +123,25 @@ function Sidebar({ business, userName, plan, activeTab, navItems, onTabChange, o
               Upgrade Plan
             </Link>
           )}
+
+          {/* Coming Soon Section */}
+          <div className="pt-3 mt-3 border-t border-border space-y-0.5">
+            <p className="text-xs font-bold text-inkFaint uppercase tracking-widest px-2 mb-2">Coming Soon</p>
+            
+            {/* KaltrixPay */}
+            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-inkFaint cursor-not-allowed">
+              <NavIcon type="pay" />
+              <span className="flex-1">KaltrixPay</span>
+              <span className="text-xs font-bold text-brand bg-brandBg border border-brand/20 px-2 py-0.5 rounded-full shrink-0">Soon</span>
+            </div>
+
+            {/* Velocity AI */}
+            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-inkFaint cursor-not-allowed">
+              <NavIcon type="ai" />
+              <span className="flex-1">Velocity AI</span>
+              <span className="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full shrink-0">Soon</span>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -13,9 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
-
-  const LAUNCH_DATE = new Date('2026-06-22T00:00:00')
-  const isRegistrationOpen = new Date() >= LAUNCH_DATE
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -23,7 +22,6 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isRegistrationOpen) return
     setLoading(true)
     setError('')
 
@@ -63,31 +61,6 @@ export default function RegisterPage() {
       setLoading(false)
       router.push('/signup/confirm')
     }
-  }
-
-  if (!isRegistrationOpen) {
-    return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <Link href="/" className="text-2xl font-black text-ink block mb-10">
-            Kaltrix<span className="text-brand">OS</span>
-          </Link>
-          <div className="bg-surface rounded-2xl border border-border shadow-lift p-10">
-            <div className="w-14 h-14 bg-brandBg border border-brand/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <span className="text-2xl">🚀</span>
-            </div>
-            <h1 className="text-xl font-black text-ink mb-2">Registration Opening Soon</h1>
-            <p className="text-inkFaint text-sm mb-6">KaltrixOS launches June 22, 2026. Join the waitlist to be first in.</p>
-            <Link href="/#waitlist" className="block gradient-brand text-white font-bold py-3 rounded-xl transition shadow-brand text-sm mb-3">
-              Join the Waitlist →
-            </Link>
-            <Link href="/login" className="text-brand text-sm hover:underline font-medium">
-              Already have an account? Sign in
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -176,11 +149,29 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block">Password</label>
-              <input
-                type="password" name="password" value={form.password} onChange={handleChange} required
-                placeholder="Min. 8 characters"
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm shadow-inner"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  placeholder="Min. 8 characters"
+                  className="w-full bg-surface border border-border rounded-xl px-4 py-3 pr-12 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm shadow-inner"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-inkFaint hover:text-inkMid transition-colors focus:outline-none"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <button
               type="submit" disabled={loading}

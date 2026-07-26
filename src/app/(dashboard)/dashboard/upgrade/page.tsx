@@ -147,25 +147,11 @@ export default function UpgradePage() {
     fetchData()
   }, [])
 
-const handlePaymentSuccess = useCallback(async (planKey: string, billingCycle: BillingCycle, reference: string) => {
-    try {
-      const res = await fetch('/api/paystack/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference, planKey, billing: billingCycle, businessId }),
-      })
-      const data = await res.json()
-      if (res.ok && data.ok) {
-        setCurrentPlan(planKey)
-        router.push('/dashboard?upgraded=true')
-      } else {
-        alert('Payment verification failed. Please contact kaltrix.ng@gmail.com with reference: ' + reference)
-      }
-    } catch {
-      alert('Payment successful but verification failed. Please contact kaltrix.ng@gmail.com with reference: ' + reference)
-    }
-    setProcessingPlan('')
-  }, [businessId, router])
+const handlePaymentSuccess = useCallback(async (planKey: string, reference: string) => {
+    // The Paystack webhook (server-to-server, src/app/api/webhooks/paystack)
+    // does the actual verification and subscription write. The client-side
+    // callback firing does NOT mean the subscription is active yet — this
+    // just polls until the webhook's write lands.
     const POLL_INTERVAL_MS = 2000
     const MAX_ATTEMPTS = 15 // ~30s
 
@@ -174,12 +160,11 @@ const handlePaymentSuccess = useCallback(async (planKey: string, billingCycle: B
 
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('plan, status')
+        .select('plan, paystack_reference')
         .eq('business_id', businessId)
-        .eq('status', 'active')
-        .single()
+        .maybeSingle()
 
-      if (subscription?.plan === planKey) {
+      if (subscription?.paystack_reference === reference && subscription.plan === planKey) {
         setCurrentPlan(planKey)
         router.push('/dashboard?upgraded=true')
         setProcessingPlan('')

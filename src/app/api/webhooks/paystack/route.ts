@@ -147,31 +147,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ received: true })
 }
-const handlePaymentSuccess = useCallback(async (planKey: string, _billingCycle: BillingCycle, reference: string) => {
-    // The Paystack webhook (server-to-server) does the actual verification
-    // and subscription write. This just waits for it to land, since the
-    // client-side callback firing does NOT mean the subscription is active yet.
-    const maxAttempts = 10
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      const { data } = await supabase
-        .from('subscriptions')
-        .select('plan, paystack_reference')
-        .eq('business_id', businessId)
-        .maybeSingle()
-
-      if (data?.paystack_reference === reference && data.plan === planKey) {
-        setCurrentPlan(planKey)
-        router.push('/dashboard?upgraded=true')
-        setProcessingPlan('')
-        return
-      }
-    }
-
-    // Webhook hasn't landed after ~20s — payment likely succeeded but confirmation is delayed.
-    alert(
-      'Payment received — confirming with Paystack. This can take a minute. ' +
-      'If your plan doesn\'t update shortly, contact kaltrix.ng@gmail.com with reference: ' + reference
-    )
-    setProcessingPlan('')
-  }, [businessId, router, supabase])

@@ -1,8 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PROTECTED_PREFIXES = ['/dashboard', '/admin']
+
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({ request })
+
+  // Only public/marketing/auth pages hit this otherwise — skip the Supabase
+  // round-trip for everything that isn't actually gated. This also means a
+  // Supabase network blip no longer takes down pages like / or /discover.
+  const needsAuthCheck = PROTECTED_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix)
+  )
+  if (!needsAuthCheck) {
+    return response
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
