@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { sendBulkWaitlistEmails } from '@/lib/resend'
 import { NextResponse } from 'next/server'
 
@@ -26,8 +26,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create Supabase client - AWAIT it!
-    const supabase = await createClient()
+    // Service-role client: this endpoint's auth is the ADMIN_SECRET_KEY check
+    // above, not RLS, and it must work with no Supabase session attached
+    // (e.g. triggered by curl or a script).
+    const supabase = createServiceClient()
 
     // Fetch all waitlist users
     const { data: waitlist, error } = await supabase
