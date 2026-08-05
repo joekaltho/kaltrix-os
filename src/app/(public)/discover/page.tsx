@@ -168,7 +168,7 @@ export default function DiscoverPage() {
             <Link href="/login" className="text-sm text-inkFaint hover:text-ink transition-all duration-300 px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg hover:scale-105">
               Sign in
             </Link>
-            <Link href="/signup" className="text-xs sm:text-sm font-bold bg-ink hover:bg-inkMid text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-105">
+            <Link href="/signup" className="text-xs sm:text-sm font-bold bg-ink hover:bg-inkMid text-ivory px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-105">
               List Your Business
             </Link>
             <ThemeToggle />
@@ -366,7 +366,7 @@ export default function DiscoverPage() {
         {/* Bottom CTA */}
         {!loading && filtered.length > 0 && (
           <FadeUp>
-            <div className="mt-14 bg-ink rounded-2xl p-8 sm:p-10 text-center relative overflow-hidden group">
+            <div className="mt-14 bg-inkStatic rounded-2xl p-8 sm:p-10 text-center relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-transparent transition-all duration-1000 group-hover:from-brand/20" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.05),transparent_70%)] animate-pulse-slow" />
               <div className="absolute top-[-30%] left-[20%] w-[60%] h-[150%] bg-brand/6 blur-3xl rounded-full pointer-events-none" />

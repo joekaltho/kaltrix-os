@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -67,7 +68,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex font-sans">
 
       {/* Left — brand panel */}
-      <div className="hidden lg:flex lg:w-[45%] bg-ink flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-inkStatic flex-col justify-between p-12 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] rounded-full bg-brand/8 blur-3xl" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-brand/5 blur-3xl" />
@@ -80,10 +81,6 @@ export default function RegisterPage() {
         </Link>
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 rounded-full px-3 py-1 mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-            <span className="text-brand text-xs font-semibold tracking-wide">Free to get started</span>
-          </div>
           <h2 className="text-3xl font-black text-white leading-tight mb-4">
             Your business deserves<br />to be discovered.
           </h2>
@@ -173,6 +170,21 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                required
+                className="mt-0.5 w-4 h-4 rounded border-border accent-brand focus:outline-none focus:ring-2 focus:ring-brand/30 flex-shrink-0 cursor-pointer"
+              />
+              <span className="text-inkFaint text-xs leading-relaxed">
+                I have read and accept the{' '}
+                <Link href="/terms" className="text-brand hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Terms of Service</Link>
+                {' '}and{' '}
+                <Link href="/privacy" className="text-brand hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Privacy Policy</Link>.
+              </span>
+            </label>
             <button
               type="submit" disabled={loading}
               className="w-full gradient-brand text-white font-black py-3.5 rounded-xl transition shadow-brand hover:shadow-brandLg disabled:opacity-50 text-sm mt-2 flex items-center justify-center gap-2"
@@ -193,12 +205,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <p className="text-center text-inkFaint text-xs mt-4">
-            By creating an account you agree to our{' '}
-            <Link href="/terms" className="text-brand hover:underline font-medium">Terms of Service</Link>
-            {' '}and{' '}
-            <Link href="/privacy" className="text-brand hover:underline font-medium">Privacy Policy</Link>.
-          </p>
         </div>
       </div>
     </div>

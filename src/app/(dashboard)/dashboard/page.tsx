@@ -278,7 +278,7 @@ export default function DashboardPage() {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-ink/40" onClick={() => setSidebarOpen(false)} />
+          <div className="absolute inset-0 bg-inkStatic/40" onClick={() => setSidebarOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-surface flex flex-col shadow-modal">
             <Sidebar
               business={business}
@@ -375,7 +375,7 @@ export default function DashboardPage() {
 
                   {/* Upgrade banner for free plan */}
                   {plan === 'free' && (
-                    <div className="bg-ink rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+                    <div className="bg-inkStatic rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
                       <div className="absolute top-[-30%] right-[-5%] w-[40%] h-[200%] bg-brand/8 blur-3xl rounded-full pointer-events-none" />
                       <div className="relative z-10">
                         <h3 className="font-black text-white">Unlock bookings, CRM and invoices</h3>

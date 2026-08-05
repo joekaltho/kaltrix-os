@@ -260,7 +260,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
             <button
               onClick={() => setBilling('6month')}
               className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                billing === '6month' ? 'bg-ink text-white shadow' : 'text-inkFaint hover:text-ink'
+                billing === '6month' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
               }`}
             >
               6 Months
@@ -268,7 +268,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
             <button
               onClick={() => setBilling('annual')}
               className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                billing === 'annual' ? 'bg-ink text-white shadow' : 'text-inkFaint hover:text-ink'
+                billing === 'annual' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
               }`}
             >
               Annual
@@ -368,7 +368,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
                     className={`w-full text-center font-black py-3.5 rounded-xl transition text-sm disabled:opacity-60 flex items-center justify-center gap-2 ${
                       plan.highlight
                         ? 'gradient-brand text-white shadow-brand hover:shadow-brandLg'
-                        : 'bg-ink hover:bg-inkMid text-white'
+                        : 'bg-ink hover:bg-inkMid text-ivory'
                     }`}
                   >
                     {processingPlan === plan.planKey ? (
@@ -410,7 +410,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
         </div>
 
         {/* Agency services */}
-        <div className="bg-ink rounded-2xl p-8 relative overflow-hidden">
+        <div className="bg-inkStatic rounded-2xl p-8 relative overflow-hidden">
           <div className="absolute top-[-30%] right-[-5%] w-[40%] h-[200%] bg-brand/8 blur-3xl rounded-full pointer-events-none" />
           <h2 className="text-xl font-black text-white mb-2 relative z-10">Need a Custom Website?</h2>
           <p className="text-white/40 mb-6 text-sm relative z-10">

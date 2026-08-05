@@ -160,13 +160,6 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 pb-12 sm:pb-20">
         <div className="relative z-10 max-w-3xl">
-          <FadeUp>
-            <div className="inline-flex items-center gap-2 bg-brandBg border border-brand/20 rounded-full px-3 sm:px-4 py-1.5 mb-6 sm:mb-8 hover:border-brand/40 transition-all duration-300 hover:scale-105 hover:shadow-brand">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-              <span className="text-brand text-xs font-bold tracking-wide uppercase">Built in Nigeria · Built for Africa</span>
-            </div>
-          </FadeUp>
-
           <FadeUp delay={100}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-5 sm:mb-6">
               Get Found.<br />
@@ -266,7 +259,7 @@ export default function LandingPage() {
       </section>
 
       {/* Stats band */}
-      <section className="relative bg-ink overflow-hidden">
+      <section className="relative bg-inkStatic overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-transparent" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
@@ -479,7 +472,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Banner */}
-      <section className="relative bg-ink overflow-hidden group">
+      <section className="relative bg-inkStatic overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-transparent transition-all duration-1000 group-hover:from-brand/20" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.05),transparent_70%)] animate-pulse-slow" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent" />

@@ -28,7 +28,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex font-sans">
 
       {/* Left — brand panel */}
-      <div className="hidden lg:flex lg:w-[45%] bg-ink flex-col justify-between p-14 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-inkStatic flex-col justify-between p-14 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] rounded-full bg-brand/8 blur-3xl" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-brand/5 blur-3xl" />
@@ -41,10 +41,6 @@ export default function LoginPage() {
         </Link>
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 rounded-full px-3 py-1 mb-10">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-            <span className="text-brand text-xs font-semibold tracking-wide">Africa&apos;s Business OS</span>
-          </div>
           <h2 className="text-4xl font-black text-white leading-tight mb-4">
             Every verified business<br />deserves to be found.
           </h2>

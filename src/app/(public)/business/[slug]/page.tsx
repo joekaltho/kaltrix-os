@@ -215,7 +215,7 @@ export default function BusinessProfilePage() {
       {/* Share Popup */}
       {showSharePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowSharePopup(false)}>
-          <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-inkStatic/60 backdrop-blur-sm" />
           <div className="relative bg-surface rounded-2xl p-6 max-w-md w-full border border-border shadow-modal" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-black text-lg">Share this business</h3>
@@ -280,7 +280,7 @@ export default function BusinessProfilePage() {
             </svg>
             Share
           </button>
-          <Link href="/signup" className="bg-ink hover:bg-inkMid text-white text-sm font-bold px-4 py-2 rounded-xl transition hover:shadow-lg hover:-translate-y-0.5">
+          <Link href="/signup" className="bg-ink hover:bg-inkMid text-ivory text-sm font-bold px-4 py-2 rounded-xl transition hover:shadow-lg hover:-translate-y-0.5">
             List Your Business
           </Link>
         </div>

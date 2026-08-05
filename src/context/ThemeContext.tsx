@@ -13,24 +13,16 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Intentional: this "mounted" flag gates rendering until after hydration
-    // so the server-rendered markup matches the client on first paint, then
-    // swaps in the persisted/OS theme. Deferring it to a second effect would
-    // just move the same setState elsewhere.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-    const savedTheme = localStorage.getItem('theme') as Theme | null
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    if (savedTheme) {
-      setTheme(savedTheme)
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-    } else if (prefersDark) {
+    // A blocking inline script in the root layout (see app/layout.tsx) already
+    // reads localStorage/OS preference and applies the `dark` class to <html>
+    // before hydration, so there's no flash of the wrong theme. This effect
+    // just syncs React state to match what's already on the page — it never
+    // blocks rendering of the app itself.
+    if (document.documentElement.classList.contains('dark')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme('dark')
-      document.documentElement.classList.add('dark')
     }
   }, [])
 
@@ -39,11 +31,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(newTheme)
     localStorage.setItem('theme', newTheme)
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
-  }
-
-  // Don't render children until mounted to prevent hydration mismatch
-  if (!mounted) {
-    return null
   }
 
   return (
