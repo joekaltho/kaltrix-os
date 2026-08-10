@@ -37,3 +37,11 @@ export function hasFeature(plan: Plan, feature: 'bookings' | 'crm' | 'invoices' 
       return false
   }
 }
+
+// Listings are available on every plan, unlike the gated features above -
+// free tier is capped, Growth and Pro are unlimited (returns null = no cap).
+export const LISTING_FREE_LIMIT = 10
+
+export function getListingLimit(plan: Plan): number | null {
+  return plan === 'free' ? LISTING_FREE_LIMIT : null
+}

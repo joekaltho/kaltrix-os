@@ -41,6 +41,7 @@ const PLANS: PlanConfig[] = [
       'Basic listing on Discover',
       'Customer inbox',
       'Public business page',
+      'Shop — up to 10 listings',
     ],
     prices: { '6month': { ngn: 0, usd: 0 }, annual: { ngn: 0, usd: 0 } },
     monthlyEquiv: { '6month': { ngn: 0, usd: '0' }, annual: { ngn: 0, usd: '0' } },
@@ -55,6 +56,7 @@ const PLANS: PlanConfig[] = [
     badge: 'Most Popular',
     features: [
       'Everything in Free',
+      'Unlimited Shop listings',
       'Verified badge on profile',
       'Priority discovery listing',
       'Bookings management',
@@ -250,7 +252,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
         <div className="mb-10">
           <h1 className="text-3xl font-black text-ink">Unlock the full KaltrixOS</h1>
           <p className="text-inkFaint mt-1">
-            Businesses on Growth close <span className="text-ink font-semibold">3× more leads</span> than free listings.
+            Businesses on Growth close <span className="text-ink font-semibold">3× more leads</span> than free-tier profiles.
           </p>
         </div>
 

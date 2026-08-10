@@ -76,6 +76,17 @@ export interface Invoice {
   created_at: string
 }
 
+export interface Listing {
+  id: string
+  business_id: string
+  name: string
+  description?: string
+  price?: number
+  image_url?: string
+  is_active: boolean
+  created_at: string
+}
+
 export interface Lead {
   id: string
   business_id: string

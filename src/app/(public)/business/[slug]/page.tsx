@@ -40,15 +40,25 @@ interface Review {
   created_at: string
 }
 
+interface Listing {
+  id: string
+  name: string
+  description?: string
+  price?: number
+  image_url?: string
+  is_active: boolean
+}
+
 export default function BusinessProfilePage() {
   const params = useParams()
   const supabase = createClient()
   const [business, setBusiness] = useState<Business | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [messageSent, setMessageSent] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
-  const [activeTab, setActiveTab] = useState('about')
+  const [activeTab, setActiveTab] = useState('shop')
   const [showSharePopup, setShowSharePopup] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [messageForm, setMessageForm] = useState({
@@ -80,6 +90,14 @@ export default function BusinessProfilePage() {
           .eq('business_id', businessData.id)
           .order('created_at', { ascending: false })
         setReviews(reviewsData || [])
+
+        const { data: listingsData } = await supabase
+          .from('listings')
+          .select('*')
+          .eq('business_id', businessData.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+        setListings(listingsData || [])
       }
       setLoading(false)
     }
@@ -345,7 +363,7 @@ export default function BusinessProfilePage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Tabs */}
             <div className="flex gap-1 border-b border-border bg-surface rounded-t-2xl px-4">
-              {['about', 'reviews', 'contact'].map((tab) => (
+              {['shop', 'about', 'reviews', 'contact'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -355,12 +373,47 @@ export default function BusinessProfilePage() {
                       : 'border-transparent text-inkFaint hover:text-ink hover:border-inkFaint/30'
                   }`}
                 >
+                  {tab === 'shop' && `Shop (${listings.length})`}
                   {tab === 'about' && 'About'}
                   {tab === 'reviews' && `Reviews (${reviews.length})`}
                   {tab === 'contact' && 'Contact'}
                 </button>
               ))}
             </div>
+
+            {/* Shop Tab */}
+            {activeTab === 'shop' && (
+              <div className="space-y-6">
+                {listings.length === 0 ? (
+                  <div className="bg-surface rounded-2xl p-16 border border-border text-center shadow-card">
+                    <div className="w-12 h-12 bg-ivoryDim rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-5 h-5 text-inkFaint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    </div>
+                    <p className="text-inkFaint font-medium text-sm">No listings yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {listings.map((listing) => (
+                      <div key={listing.id} className="bg-surface rounded-2xl border border-border shadow-card overflow-hidden transition hover:shadow-lift hover:-translate-y-0.5">
+                        <div className="aspect-square bg-ivoryDim flex items-center justify-center overflow-hidden">
+                          {listing.image_url ? (
+                            <img src={listing.image_url} alt={listing.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-inkFaint text-xs">No image</span>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <p className="font-bold text-sm truncate">{listing.name}</p>
+                          {!!listing.price && <p className="text-brand font-black text-sm mt-0.5">₦{listing.price.toLocaleString()}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* About Tab */}
             {activeTab === 'about' && (
