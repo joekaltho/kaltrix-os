@@ -79,7 +79,7 @@ function waitlistEmailHtml(name?: string) {
 
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
-              <a href="https://kaltrix-os.vercel.app/signup"
+              <a href="https://kaltrixos.com/signup"
                  style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #ffffff; font-size: 18px; font-weight: 900; padding: 16px 48px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 20px rgba(34,197,94,0.22);">
                 Claim Your Free Account →
               </a>
@@ -119,7 +119,7 @@ function waitlistEmailHtml(name?: string) {
               </p>
               <p style="color: #8a8a8a; font-size: 12px; margin: 12px 0 0; line-height: 1.6;">
                 KaltrixOS · Built in Nigeria · Built for Africa<br>
-                <a href="https://kaltrix-os.vercel.app" style="color: #22c55e; text-decoration: none;">kaltrix-os.vercel.app</a>
+                <a href="https://kaltrixos.com" style="color: #22c55e; text-decoration: none;">kaltrixos.com</a>
               </p>
             </div>
           </div>

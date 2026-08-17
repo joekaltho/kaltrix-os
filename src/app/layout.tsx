@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "KaltrixOS — Africa's Business Operating System",
     description:
       'Get found. Get trusted. Get customers. The complete business OS for African SMEs.',
-    url: 'https://kaltrix-os.vercel.app',
+    url: 'https://kaltrixos.com',
     siteName: 'KaltrixOS',
     locale: 'en_NG',
     type: 'website',
