@@ -109,6 +109,15 @@ export interface Subscription {
   id: string
   business_id: string
   plan: 'free' | 'growth' | 'pro'
-  status: 'active' | 'cancelled' | 'expired'
+  // No CHECK constraint in the DB — 'trialing' and 'active' are the only
+  // values anything currently writes (the provision_trial_subscription()
+  // and expire_trial_subscriptions() Postgres functions, and the Paystack
+  // webhook), but this is kept as `string` rather than a narrower union so
+  // it can't silently drift out of sync with the database again.
+  status: string
+  trial_started_at: string | null
+  expires_at: string | null
+  paystack_reference: string | null
   created_at: string
+  updated_at: string
 }

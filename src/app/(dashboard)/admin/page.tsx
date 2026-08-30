@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { resolveEffectivePlan } from '@/lib/check-plan'
 import Link from 'next/link'
 
 interface Business {
@@ -38,6 +39,7 @@ interface Subscription {
   business_id: string
   plan: string
   status: string
+  expires_at: string | null
 }
 
 export default function AdminPage() {
@@ -70,7 +72,7 @@ export default function AdminPage() {
         supabase.from('businesses').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
-        supabase.from('subscriptions').select('business_id, plan, status').eq('status', 'active'),
+        supabase.from('subscriptions').select('business_id, plan, status, expires_at'),
       ])
 
       setBusinesses(businessesRes.data || [])
@@ -143,7 +145,7 @@ export default function AdminPage() {
   const lowTrust = businesses.filter(b => b.trust_score < 50)
   const flagged = businesses.filter(b => !b.website_url || b.trust_score < 50 || !b.is_verified)
   const businessUsers = profiles.filter(p => p.role === 'business')
-  const paidSubs = subscriptions.filter(s => s.plan !== 'free')
+  const paidSubs = subscriptions.filter(s => resolveEffectivePlan(s) !== 'free')
   const filteredBusinesses = businesses.filter(b =>
     b.business_name.toLowerCase().includes(search.toLowerCase()) ||
     b.city.toLowerCase().includes(search.toLowerCase()) ||
@@ -151,7 +153,7 @@ export default function AdminPage() {
   )
 
   const getSubPlan = (businessId: string) =>
-    subscriptions.find(s => s.business_id === businessId)?.plan || 'free'
+    resolveEffectivePlan(subscriptions.find(s => s.business_id === businessId) ?? null)
 
   if (loading) {
     return (

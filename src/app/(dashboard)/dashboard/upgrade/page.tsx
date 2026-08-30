@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getSubscriptionState, SubscriptionState } from '@/lib/check-plan'
 import Link from 'next/link'
 
 type BillingCycle = '6month' | 'annual'
@@ -103,6 +104,7 @@ export default function UpgradePage() {
   const [userName, setUserName] = useState('')
   const [businessId, setBusinessId] = useState('')
   const [currentPlan, setCurrentPlan] = useState('free')
+  const [subscription, setSubscription] = useState<SubscriptionState | null>(null)
   const [loading, setLoading] = useState(true)
   const [processingPlan, setProcessingPlan] = useState('')
   const [billing, setBilling] = useState<BillingCycle>('annual')
@@ -133,16 +135,12 @@ export default function UpgradePage() {
       if (profile) setUserName(profile.name)
 
       const { data: business } = await supabase
-        .from('businesses').select('id').eq('user_id', user.id).single()
+        .from('businesses').select('id').eq('user_id', user.id).maybeSingle()
       if (business) {
         setBusinessId(business.id)
-        const { data: subscription } = await supabase
-          .from('subscriptions')
-          .select('plan')
-          .eq('business_id', business.id)
-          .eq('status', 'active')
-          .single()
-        if (subscription) setCurrentPlan(subscription.plan)
+        const subState = await getSubscriptionState(business.id)
+        setSubscription(subState)
+        setCurrentPlan(subState.plan)
       }
       setLoading(false)
     }
@@ -246,6 +244,11 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
           <div className="bg-brandBg border border-brand/20 rounded-xl px-4 py-2 text-center">
             <p className="text-inkFaint text-xs">Current Plan</p>
             <p className="text-brand font-black capitalize">{currentPlan}</p>
+            {subscription?.isTrialing && (
+              <p className="text-inkFaint text-[11px] font-semibold">
+                Trial · {subscription.trialDaysLeft}d left
+              </p>
+            )}
           </div>
         </div>
 

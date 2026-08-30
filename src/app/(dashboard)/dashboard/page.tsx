@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
-import { getCurrentPlan, hasFeature, Plan } from '@/lib/check-plan'
+import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
 import ListingsPanel from '@/components/ListingsPanel'
 
 type Tab = 'overview' | 'inbox' | 'bookings' | 'customers' | 'invoices' | 'listings'
@@ -39,13 +39,14 @@ interface SidebarProps {
   business: Business | null
   userName: string
   plan: Plan
+  subscription: SubscriptionState | null
   activeTab: Tab
   navItems: { id: string; label: string; icon: string; badge?: number }[]
   onTabChange: (tab: Tab) => void
   onSignOut: () => void
 }
 
-function Sidebar({ business, userName, plan, activeTab, navItems, onTabChange, onSignOut }: SidebarProps) {
+function Sidebar({ business, userName, plan, subscription, activeTab, navItems, onTabChange, onSignOut }: SidebarProps) {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Logo */}
@@ -119,7 +120,7 @@ function Sidebar({ business, userName, plan, activeTab, navItems, onTabChange, o
               </svg>
             </Link>
           )}
-          {plan === 'free' && (
+          {(plan === 'free' || subscription?.isTrialing) && (
             <Link href="/dashboard/upgrade" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-black text-brand bg-brandBg border border-brand/20 hover:bg-brandMid transition">
               <NavIcon type="upgrade" />
               Upgrade Plan
@@ -156,6 +157,11 @@ function Sidebar({ business, userName, plan, activeTab, navItems, onTabChange, o
               plan === 'free' ? 'text-inkFaint' :
               plan === 'growth' ? 'text-brand' : 'text-ink'
             }`}>{plan} plan</span>
+            {subscription?.isTrialing && (
+              <p className="text-[11px] font-bold text-brand">
+                Trial · {subscription.trialDaysLeft}d left
+              </p>
+            )}
           </div>
           <button onClick={onSignOut} className="flex items-center gap-1.5 text-xs text-inkFaint hover:text-red-500 transition" title="Sign out">
             <NavIcon type="signout" />
@@ -178,6 +184,7 @@ export default function DashboardPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [plan, setPlan] = useState<Plan>('free')
+  const [subscription, setSubscription] = useState<SubscriptionState | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -194,18 +201,19 @@ export default function DashboardPage() {
       const { data: businessData } = await supabase.from('businesses').select('*').eq('user_id', user.id).single()
       if (businessData) {
         setBusiness(businessData)
-        const currentPlan = await getCurrentPlan()
-        setPlan(currentPlan)
+        const subState = await getSubscriptionState(businessData.id)
+        setSubscription(subState)
+        setPlan(subState.plan)
 
-        if (hasFeature(currentPlan, 'bookings')) {
+        if (hasFeature(subState.plan, 'bookings')) {
           const { data } = await supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
           setBookings(data || [])
         }
-        if (hasFeature(currentPlan, 'crm')) {
+        if (hasFeature(subState.plan, 'crm')) {
           const { data } = await supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
           setCustomers(data || [])
         }
-        if (hasFeature(currentPlan, 'invoices')) {
+        if (hasFeature(subState.plan, 'invoices')) {
           const { data } = await supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
           setInvoices(data || [])
         }
@@ -271,6 +279,7 @@ export default function DashboardPage() {
           business={business}
           userName={userName}
           plan={plan}
+          subscription={subscription}
           activeTab={activeTab}
           navItems={navItems}
           onTabChange={(tab) => setActiveTab(tab)}
@@ -287,6 +296,7 @@ export default function DashboardPage() {
               business={business}
               userName={userName}
               plan={plan}
+              subscription={subscription}
               activeTab={activeTab}
               navItems={navItems}
               onTabChange={(tab) => { setActiveTab(tab); setSidebarOpen(false) }}
