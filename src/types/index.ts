@@ -19,6 +19,9 @@ export interface Business {
   description?: string
   logo_url?: string
   trust_score: number
+  // Populated by the DB (calculate_trust_score_from_fields) — see
+  // src/lib/trust-score.ts for the TrustSignal shape.
+  trust_signals?: import('@/lib/trust-score').TrustSignal[]
   is_verified: boolean
   slug: string
   created_at: string

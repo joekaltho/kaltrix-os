@@ -14,6 +14,7 @@ interface Business {
   phone: string
   website_url: string
   trust_score: number
+  trust_signals?: import('@/lib/trust-score').TrustSignal[]
   is_verified: boolean
   slug: string
   created_at: string
@@ -52,8 +53,6 @@ export default function AdminPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [search, setSearch] = useState('')
-  const [updatingTrust, setUpdatingTrust] = useState<string | null>(null)
-  const [trustInput, setTrustInput] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,29 +89,33 @@ export default function AdminPage() {
   }
 
   const handleVerify = async (businessId: string) => {
-    await supabase.from('businesses').update({ is_verified: true }).eq('id', businessId)
-    setBusinesses(businesses.map(b => b.id === businessId ? { ...b, is_verified: true } : b))
+    const { data } = await supabase
+      .from('businesses')
+      .update({ is_verified: true })
+      .eq('id', businessId)
+      .select('trust_score, trust_signals')
+      .single()
+    setBusinesses(businesses.map(b => b.id === businessId
+      ? { ...b, is_verified: true, trust_score: data?.trust_score ?? b.trust_score, trust_signals: data?.trust_signals ?? b.trust_signals }
+      : b))
   }
 
   const handleUnverify = async (businessId: string) => {
-    await supabase.from('businesses').update({ is_verified: false }).eq('id', businessId)
-    setBusinesses(businesses.map(b => b.id === businessId ? { ...b, is_verified: false } : b))
+    const { data } = await supabase
+      .from('businesses')
+      .update({ is_verified: false })
+      .eq('id', businessId)
+      .select('trust_score, trust_signals')
+      .single()
+    setBusinesses(businesses.map(b => b.id === businessId
+      ? { ...b, is_verified: false, trust_score: data?.trust_score ?? b.trust_score, trust_signals: data?.trust_signals ?? b.trust_signals }
+      : b))
   }
 
   const handleDelete = async (businessId: string) => {
     if (!confirm('Are you sure you want to delete this business? This cannot be undone.')) return
     await supabase.from('businesses').delete().eq('id', businessId)
     setBusinesses(businesses.filter(b => b.id !== businessId))
-  }
-
-  const handleUpdateTrustScore = async (businessId: string) => {
-    const score = trustInput[businessId]
-    if (!score || score < 1 || score > 100) return
-    setUpdatingTrust(businessId)
-    await supabase.from('businesses').update({ trust_score: score }).eq('id', businessId)
-    setBusinesses(businesses.map(b => b.id === businessId ? { ...b, trust_score: score } : b))
-    setUpdatingTrust(null)
-    setTrustInput(prev => { const n = { ...prev }; delete n[businessId]; return n })
   }
 
   // eslint-disable-next-line react-hooks/immutability -- click handler, not render; standard navigation
@@ -343,26 +346,13 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* TrustScore manual override */}
-                  <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-800">
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      placeholder="Override TrustScore"
-                      value={trustInput[business.id] || ''}
-                      onChange={(e) => setTrustInput(prev => ({ ...prev, [business.id]: Number(e.target.value) }))}
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-600 focus:outline-none focus:border-green-400 transition"
-                    />
-                    <button
-                      onClick={() => handleUpdateTrustScore(business.id)}
-                      disabled={updatingTrust === business.id || !trustInput[business.id]}
-                      className="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-40"
-                    >
-                      {updatingTrust === business.id ? 'Saving...' : 'Set Score'}
-                    </button>
+                  {/* TrustScore is computed by the DB from verification + reviews +
+                      activity + profile completeness — no manual override anymore.
+                      Verifying the business below is the one input admin controls. */}
+                  <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-800">
+                    <p className="text-gray-500 text-xs">TrustScore is computed automatically — verify the business to raise it</p>
                     {business.slug && (
-                      <Link href={`/business/${business.slug}`} target="_blank" className="bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-xs px-3 py-1.5 rounded-lg transition border border-gray-700">
+                      <Link href={`/business/${business.slug}`} target="_blank" className="bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-xs px-3 py-1.5 rounded-lg transition border border-gray-700 shrink-0">
                         View
                       </Link>
                     )}

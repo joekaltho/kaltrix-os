@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { calculateTrustScore } from '@/lib/trust-score'
 
 const industries = [
   'Restaurant & Food', 'Fashion & Clothing', 'Health & Wellness',
@@ -50,16 +49,6 @@ export default function CreateBusinessPage() {
     return `${base}-${Date.now().toString(36)}`
   }
 
-  const getTrustScore = () => calculateTrustScore({
-    business_name: form.business_name,
-    industry: form.industry,
-    city: form.city,
-    phone: form.phone,
-    website_url: form.website_url,
-    description: form.description,
-    has_logo: !!logoFile,
-  })
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -93,14 +82,12 @@ export default function CreateBusinessPage() {
       }
     }
 
-    const trust_score = getTrustScore()
     const slug = generateSlug(form.business_name)
 
     const { error: insertError } = await supabase.from('businesses').insert({
       user_id: user.id,
       ...form,
       logo_url,
-      trust_score,
       slug,
       is_verified: false,
     })
@@ -258,7 +245,7 @@ export default function CreateBusinessPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <p className="text-inkFaint text-xs">
-              Your <span className="text-ink font-semibold">TrustScore</span> is calculated automatically by our AI engine
+              Your <span className="text-ink font-semibold">TrustScore</span> starts low and builds up as you get verified, collect reviews, and stay active
             </p>
           </div>
 

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { calculateTrustScore } from '@/lib/trust-score'
+import TrustScoreCard from '@/components/TrustScoreCard'
+import type { TrustSignal } from '@/lib/trust-score'
 
 const industries = [
   'Restaurant & Food',
@@ -31,6 +32,8 @@ export default function EditProfilePage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [businessId, setBusinessId] = useState('')
+  const [trustScore, setTrustScore] = useState(0)
+  const [trustSignals, setTrustSignals] = useState<TrustSignal[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [form, setForm] = useState({
     business_name: '',
@@ -55,6 +58,8 @@ export default function EditProfilePage() {
 
       if (business) {
         setBusinessId(business.id)
+        setTrustScore(business.trust_score || 0)
+        setTrustSignals(business.trust_signals || [])
         setForm({
           business_name: business.business_name || '',
           industry: business.industry || '',
@@ -69,16 +74,6 @@ export default function EditProfilePage() {
     }
     fetchBusiness()
   }, [])
-
-  const getTrustScore = () => calculateTrustScore({
-    business_name: form.business_name,
-    industry: form.industry,
-    city: form.city,
-    phone: form.phone,
-    website_url: form.website_url,
-    description: form.description,
-    has_logo: !!(form.logo_url || logoFile),
-  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -108,17 +103,22 @@ export default function EditProfilePage() {
       }
     }
 
-    const trust_score = getTrustScore()
-
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('businesses')
-      .update({ ...form, logo_url, trust_score })
+      .update({ ...form, logo_url })
       .eq('id', businessId)
+      .select('trust_score, trust_signals')
+      .single()
 
     if (updateError) {
       setError(updateError.message)
       setSaving(false)
       return
+    }
+
+    if (updated) {
+      setTrustScore(updated.trust_score || 0)
+      setTrustSignals(updated.trust_signals || [])
     }
 
     setSaved(true)
@@ -149,8 +149,14 @@ export default function EditProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-black text-ink">Edit Business Profile</h1>
-          <p className="text-inkFaint text-sm mt-1">Keep your profile complete for a higher TrustScore</p>
+          <p className="text-inkFaint text-sm mt-1">A complete profile helps customers find and understand your business</p>
         </div>
+
+        {trustSignals.length > 0 && (
+          <div className="mb-6">
+            <TrustScoreCard score={trustScore} signals={trustSignals} />
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
@@ -246,7 +252,7 @@ export default function EditProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <p className="text-inkFaint text-xs">
-              Your <span className="text-ink font-semibold">TrustScore</span> is recalculated automatically by our AI engine on save
+              Your <span className="text-ink font-semibold">TrustScore</span> updates automatically based on verification, reviews, and activity
             </p>
           </div>
 
