@@ -11,11 +11,9 @@
 -- gets an RLS rejection on submit. The client code silently swallowed that
 -- error and showed a fake success message with a fake review injected into
 -- the list — that part is already fixed in the app code (this migration is
--- the other half of the fix, and the app-code fix alone doesn't help until
--- this runs).
+-- the other half of the fix).
 --
--- NOT YET APPLIED to production — same as the TrustScore v2 migration,
--- left for you to review and run.
+-- Applied to production.
 --
 -- Safe to re-run.
 
