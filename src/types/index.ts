@@ -90,6 +90,16 @@ export interface Listing {
   created_at: string
 }
 
+export interface Expense {
+  id: string
+  business_id: string
+  amount: number
+  category: string
+  description?: string
+  expense_date: string
+  created_at: string
+}
+
 export interface Lead {
   id: string
   business_id: string

@@ -10,8 +10,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
 import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
 import ListingsPanel from '@/components/ListingsPanel'
+import BusinessPulsePanel from '@/components/BusinessPulsePanel'
 
-type Tab = 'overview' | 'inbox' | 'bookings' | 'customers' | 'invoices' | 'listings'
+type Tab = 'overview' | 'inbox' | 'bookings' | 'customers' | 'invoices' | 'listings' | 'pulse'
 
 function NavIcon({ type }: { type: string }) {
   const icons: Record<string, ReactElement> = {
@@ -21,6 +22,7 @@ function NavIcon({ type }: { type: string }) {
     customers: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
     invoices: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
     listings: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />,
+    pulse: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h4l3 8 4-16 3 8h4" />,
     profile: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
     upgrade: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />,
     discover: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />,
@@ -257,6 +259,7 @@ export default function DashboardPage() {
     { id: 'customers', label: 'Customers', icon: 'customers', requires: 'crm' as const },
     { id: 'invoices', label: 'Invoices', icon: 'invoices', requires: 'invoices' as const, badge: unpaidInvoices.length },
     { id: 'listings', label: 'Listings', icon: 'listings', always: true },
+    { id: 'pulse', label: 'Pulse', icon: 'pulse', always: true },
   ].filter(item => item.always || (item.requires && hasFeature(plan, item.requires)))
 
   if (loading) {
@@ -361,6 +364,7 @@ export default function DashboardPage() {
                   {activeTab === 'customers' && `${customers.length} customer${customers.length !== 1 ? 's' : ''} in CRM`}
                   {activeTab === 'invoices' && `${unpaidInvoices.length} unpaid invoice${unpaidInvoices.length !== 1 ? 's' : ''}`}
                   {activeTab === 'listings' && 'Manage what shows in your public Shop'}
+                  {activeTab === 'pulse' && 'How your business is doing right now'}
                 </p>
               </div>
 
@@ -678,6 +682,28 @@ export default function DashboardPage() {
               {/* LISTINGS */}
               {activeTab === 'listings' && (
                 <ListingsPanel businessId={business.id} plan={plan} />
+              )}
+
+              {/* PULSE */}
+              {activeTab === 'pulse' && (
+                hasFeature(plan, 'analytics') ? (
+                  <BusinessPulsePanel businessId={business.id} />
+                ) : (
+                  <div className="bg-surface rounded-2xl p-10 sm:p-16 border border-border text-center shadow-card">
+                    <div className="w-12 h-12 bg-brandBg rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h4l3 8 4-16 3 8h4" />
+                      </svg>
+                    </div>
+                    <p className="font-black text-lg mb-1">Business Pulse is a Pro feature</p>
+                    <p className="text-inkFaint text-sm max-w-sm mx-auto mb-6">
+                      See revenue, profit, growth, and a Business Health Score built from your real activity — updated every time you open it.
+                    </p>
+                    <Link href="/dashboard/upgrade" className="gradient-brand text-white text-sm font-black px-6 py-3 rounded-xl transition shadow-brand inline-block">
+                      Upgrade to Pro
+                    </Link>
+                  </div>
+                )
               )}
             </>
           )}
