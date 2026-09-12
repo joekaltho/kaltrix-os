@@ -3,8 +3,9 @@
 import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { createClient, getSessionUser } from '@/lib/supabase/client'
-import { getCurrentPlan, getListingLimit } from '@/lib/check-plan'
+import { createClient } from '@/lib/supabase/client'
+import { getCurrentBusinessAndPlan, getListingLimit } from '@/lib/check-plan'
+import { BusinessProvider } from '@/lib/business-context'
 
 interface ListingCapGuardProps {
   children: React.ReactNode
@@ -15,10 +16,12 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
   const router = useRouter()
   const supabase = createClient()
   const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
-      const plan = await getCurrentPlan()
+      const { userId, businessId, plan } = await getCurrentBusinessAndPlan()
+      setBusinessId(businessId)
       const limit = getListingLimit(plan)
 
       // null = unlimited on this plan, nothing to check
@@ -27,13 +30,9 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
         return
       }
 
-      const { data: { user } } = await getSessionUser(supabase)
-      if (!user) { router.push('/login'); return }
+      if (!userId) { router.push('/login'); return }
 
-      const { data: business } = await supabase
-        .from('businesses').select('id').eq('user_id', user.id).single()
-
-      if (!business) {
+      if (!businessId) {
         // No business yet - let the form itself surface that message
         setAllowed(true)
         return
@@ -42,7 +41,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
       const { count } = await supabase
         .from('listings')
         .select('id', { count: 'exact', head: true })
-        .eq('business_id', business.id)
+        .eq('business_id', businessId)
 
       if ((count ?? 0) >= limit) {
         const returnUrl = window.location.pathname
@@ -65,7 +64,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
     )
   }
 
-  return allowed ? <>{children}</> : null
+  return allowed ? <BusinessProvider value={businessId}>{children}</BusinessProvider> : null
 }
 
 export default function ListingCapGuard(props: ListingCapGuardProps) {

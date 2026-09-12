@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import PremiumGuard from '@/components/PremiumGuard'
+import { useBusinessId } from '@/lib/business-context'
 
 const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
 const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
@@ -12,6 +13,7 @@ const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.
 function NewBookingForm() {
   const router = useRouter()
   const supabase = createClient()
+  const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -33,17 +35,18 @@ function NewBookingForm() {
     setLoading(true)
     setError('')
 
-    const { data: { user } } = await getSessionUser(supabase)
-    if (!user) { router.push('/login'); return }
-
-    const { data: business } = await supabase
-      .from('businesses').select('id').eq('user_id', user.id).single()
-
-    if (!business) {
+    if (!businessId) {
       setError('No business profile found. Please create one first.')
       setLoading(false)
       return
     }
+
+    // PremiumGuard already resolved the session to grant access to this
+    // page -- still need the user id itself (not just businessId) for the
+    // bookings row, so this one getSessionUser() stays (it's a cached
+    // local read, not a network call; see lib/supabase/client.ts).
+    const { data: { user } } = await getSessionUser(supabase)
+    if (!user) { router.push('/login'); return }
 
     // Combine date + time into single timestamp
     const booking_date_time = form.booking_date && form.booking_time
@@ -51,7 +54,7 @@ function NewBookingForm() {
       : null
 
     const { error: insertError } = await supabase.from('bookings').insert({
-      business_id: business.id,
+      business_id: businessId,
       user_id: user.id,
       customer_name: form.customer_name,
       customer_phone: form.customer_phone,

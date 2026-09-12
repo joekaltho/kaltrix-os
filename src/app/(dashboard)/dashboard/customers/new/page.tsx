@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import PremiumGuard from '@/components/PremiumGuard'
+import { useBusinessId } from '@/lib/business-context'
 
 const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
 const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
@@ -12,6 +13,7 @@ const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.
 function NewCustomerForm() {
   const router = useRouter()
   const supabase = createClient()
+  const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -26,20 +28,19 @@ function NewCustomerForm() {
     setLoading(true)
     setError('')
 
-    const { data: { user } } = await getSessionUser(supabase)
-    if (!user) { router.push('/login'); return }
-
-    const { data: business } = await supabase
-      .from('businesses').select('id').eq('user_id', user.id).single()
-
-    if (!business) {
+    if (!businessId) {
       setError('No business profile found.')
       setLoading(false)
       return
     }
 
+    // Free now (cached session read, not a network call) -- kept as the
+    // same defensive "session vanished mid-form" guard the original had.
+    const { data: { user } } = await getSessionUser(supabase)
+    if (!user) { router.push('/login'); return }
+
     const { error: insertError } = await supabase
-      .from('customers').insert({ business_id: business.id, ...form })
+      .from('customers').insert({ business_id: businessId, ...form })
 
     if (insertError) {
       setError(`Could not save customer: ${insertError.message}`)

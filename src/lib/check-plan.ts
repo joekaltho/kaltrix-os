@@ -102,11 +102,27 @@ export async function getSubscriptionState(businessId: string): Promise<Subscrip
  * Convenience wrapper for callers (the Pro-feature guards) that only need
  * the plan and don't already have the business_id in scope. Resolves the
  * caller's own business, then delegates to getSubscriptionState().
+ *
+ * Perf note (Sep 2026 flow-by-flow performance pass): this used to resolve
+ * business.id internally and then discard it, returning only the plan --
+ * which meant every guard's children (the bookings/invoices/customers/
+ * listings "new" pages) had to re-run the exact same `businesses` query a
+ * second time in their submit handlers just to get an id this function
+ * already had. getCurrentBusinessAndPlan() below returns it; guards pass
+ * it down via BusinessContext (see business-context.tsx) so it's resolved
+ * once per page visit, not once per component. getCurrentPlan() is kept
+ * as a thin wrapper since nothing outside this pass needs to change.
  */
-export async function getCurrentPlan(): Promise<Plan> {
+export interface CurrentBusinessAndPlan {
+  userId: string | null
+  businessId: string | null
+  plan: Plan
+}
+
+export async function getCurrentBusinessAndPlan(): Promise<CurrentBusinessAndPlan> {
   const supabase = createClient()
   const { data: { user } } = await getSessionUser(supabase)
-  if (!user) return 'free'
+  if (!user) return { userId: null, businessId: null, plan: 'free' }
 
   const { data: business } = await supabase
     .from('businesses')
@@ -114,9 +130,14 @@ export async function getCurrentPlan(): Promise<Plan> {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!business) return 'free'
+  if (!business) return { userId: user.id, businessId: null, plan: 'free' }
 
-  return (await getSubscriptionState(business.id)).plan
+  const { plan } = await getSubscriptionState(business.id)
+  return { userId: user.id, businessId: business.id, plan }
+}
+
+export async function getCurrentPlan(): Promise<Plan> {
+  return (await getCurrentBusinessAndPlan()).plan
 }
 
 export function hasFeature(plan: Plan, feature: 'bookings' | 'crm' | 'invoices' | 'analytics'): boolean {

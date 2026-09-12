@@ -3,7 +3,8 @@
 import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { getCurrentPlan, hasFeature } from '@/lib/check-plan'
+import { getCurrentBusinessAndPlan, hasFeature } from '@/lib/check-plan'
+import { BusinessProvider } from '@/lib/business-context'
 
 interface PremiumGuardProps {
   children: React.ReactNode
@@ -14,10 +15,12 @@ interface PremiumGuardProps {
 function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgrade' }: PremiumGuardProps) {
   const router = useRouter()
   const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
-      const plan = await getCurrentPlan()
+      const { businessId, plan } = await getCurrentBusinessAndPlan()
+      setBusinessId(businessId)
       if (hasFeature(plan, feature)) {
         setAllowed(true)
       } else {
@@ -39,7 +42,7 @@ function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgra
     )
   }
 
-  return allowed ? <>{children}</> : null
+  return allowed ? <BusinessProvider value={businessId}>{children}</BusinessProvider> : null
 }
 
 export default function PremiumGuard(props: PremiumGuardProps) {

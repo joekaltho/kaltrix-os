@@ -6,10 +6,12 @@ import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { InvoiceItem } from '@/types'
 import PremiumGuard from '@/components/PremiumGuard'
+import { useBusinessId } from '@/lib/business-context'
 
 function NewInvoiceForm() {
   const router = useRouter()
   const supabase = createClient()
+  const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [items, setItems] = useState<InvoiceItem[]>([
@@ -46,25 +48,21 @@ function NewInvoiceForm() {
     setLoading(true)
     setError('')
 
-    const { data: { user } } = await getSessionUser(supabase)
-    if (!user) { router.push('/login'); return }
-
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!business) {
+    if (!businessId) {
       setError('No business found')
       setLoading(false)
       return
     }
 
+    // Free now (cached session read, not a network call) -- kept as the
+    // same defensive "session vanished mid-form" guard the original had.
+    const { data: { user } } = await getSessionUser(supabase)
+    if (!user) { router.push('/login'); return }
+
     const { error: insertError } = await supabase
       .from('invoices')
       .insert({
-        business_id: business.id,
+        business_id: businessId,
         customer_name: form.customer_name,
         customer_phone: form.customer_phone,
         due_date: form.due_date || null,
