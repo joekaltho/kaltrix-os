@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { getSubscriptionState, SubscriptionState } from '@/lib/check-plan'
 import Link from 'next/link'
 
@@ -126,7 +126,7 @@ export default function UpgradePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       if (!user) { router.push('/login'); return }
       setUserEmail(user.email || '')
 

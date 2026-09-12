@@ -116,6 +116,29 @@ export interface Review {
   rating: number
   comment: string
   created_at: string
+  // Added by the review-integrity foundation (Sep 2026). All optional so
+  // existing call sites that only select a subset of columns still typecheck.
+  moderation_status?: 'published' | 'flagged' | 'removed'
+  flagged_reason?: string | null
+  flagged_at?: string | null
+  moderated_by?: string | null
+  moderated_at?: string | null
+  reviewer_ip_hash?: string | null
+  reviewer_phone?: string | null
+  reviewer_email?: string | null
+}
+
+export interface ReviewReport {
+  id: string
+  review_id: string
+  business_id: string
+  reason: 'fake' | 'spam' | 'self_review' | 'offensive' | 'irrelevant' | 'other'
+  details: string | null
+  reporter_contact: string | null
+  status: 'open' | 'dismissed' | 'upheld'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  created_at: string
 }
 
 export interface Subscription {

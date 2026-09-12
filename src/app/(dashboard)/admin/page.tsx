@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { resolveEffectivePlan } from '@/lib/check-plan'
 import Link from 'next/link'
 
@@ -43,6 +43,18 @@ interface Subscription {
   expires_at: string | null
 }
 
+interface ReviewReport {
+  id: string
+  review_id: string
+  business_id: string
+  reason: string
+  details: string | null
+  status: string
+  created_at: string
+  reviews: { reviewer_name: string; rating: number; comment: string; moderation_status: string } | null
+  businesses: { business_name: string } | null
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -51,12 +63,13 @@ export default function AdminPage() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [reviewReports, setReviewReports] = useState<ReviewReport[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       if (!user) { router.push('/login'); return }
 
       const { data: profile } = await supabase
@@ -67,17 +80,21 @@ export default function AdminPage() {
         return
       }
 
-      const [businessesRes, profilesRes, waitlistRes, subsRes] = await Promise.all([
+      const [businessesRes, profilesRes, waitlistRes, subsRes, reportsRes] = await Promise.all([
         supabase.from('businesses').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
         supabase.from('subscriptions').select('business_id, plan, status, expires_at'),
+        supabase.from('review_reports')
+          .select('*, reviews(reviewer_name, rating, comment, moderation_status), businesses(business_name)')
+          .order('created_at', { ascending: false }),
       ])
 
       setBusinesses(businessesRes.data || [])
       setProfiles(profilesRes.data || [])
       setWaitlist(waitlistRes.data || [])
       setSubscriptions(subsRes.data || [])
+      setReviewReports((reportsRes.data as unknown as ReviewReport[]) || [])
       setLoading(false)
     }
     fetchData()
@@ -116,6 +133,33 @@ export default function AdminPage() {
     if (!confirm('Are you sure you want to delete this business? This cannot be undone.')) return
     await supabase.from('businesses').delete().eq('id', businessId)
     setBusinesses(businesses.filter(b => b.id !== businessId))
+  }
+
+  // Dismiss: the report was unfounded, leave the review alone.
+  const handleDismissReport = async (reportId: string) => {
+    const { data: { user } } = await getSessionUser(supabase)
+    await supabase.from('review_reports')
+      .update({ status: 'dismissed', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+      .eq('id', reportId)
+    setReviewReports(reviewReports.map(r => r.id === reportId ? { ...r, status: 'dismissed' } : r))
+  }
+
+  // Uphold: the report was right — remove the review. This is the one
+  // place a review actually gets taken down, and only an admin can do it
+  // (enforced by RLS, not just the UI).
+  const handleUpholdReport = async (reportId: string, reviewId: string) => {
+    if (!confirm('Remove this review? This will hide it from the public business page.')) return
+    const { data: { user } } = await getSessionUser(supabase)
+    const now = new Date().toISOString()
+    await Promise.all([
+      supabase.from('review_reports')
+        .update({ status: 'upheld', reviewed_by: user?.id, reviewed_at: now })
+        .eq('id', reportId),
+      supabase.from('reviews')
+        .update({ moderation_status: 'removed', moderated_by: user?.id, moderated_at: now })
+        .eq('id', reviewId),
+    ])
+    setReviewReports(reviewReports.map(r => r.id === reportId ? { ...r, status: 'upheld', reviews: r.reviews ? { ...r.reviews, moderation_status: 'removed' } : r.reviews } : r))
   }
 
   // eslint-disable-next-line react-hooks/immutability -- click handler, not render; standard navigation
@@ -169,10 +213,13 @@ export default function AdminPage() {
     )
   }
 
+  const openReports = reviewReports.filter(r => r.status === 'open')
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'businesses', label: `Businesses (${businesses.length})` },
     { id: 'users', label: `Users (${profiles.length})` },
+    { id: 'reviews', label: `Reported Reviews (${openReports.length})` },
     { id: 'flagged', label: `Leads (${flagged.length})` },
     { id: 'waitlist', label: `Waitlist (${waitlist.length})` },
   ]
@@ -401,6 +448,72 @@ export default function AdminPage() {
                 }`}>
                   {profile.role}
                 </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* REPORTED REVIEWS */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-3">
+            <p className="text-gray-400 text-sm">
+              A report flags a review for your attention — it doesn&apos;t remove it. Reviews with 3+ open
+              reports are auto-flagged as &quot;under review&quot; on the public page. Dismiss if the report is
+              unfounded, or uphold to remove the review.
+            </p>
+            {reviewReports.length === 0 ? (
+              <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
+                <p className="text-gray-400">No reviews have been reported</p>
+              </div>
+            ) : reviewReports.map((report) => (
+              <div key={report.id} className="bg-gray-900 rounded-xl p-5 border border-gray-800">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-black text-sm">{report.reviews?.reviewer_name || 'Unknown reviewer'}</p>
+                    <p className="text-gray-500 text-xs">{report.businesses?.business_name || 'Unknown business'}</p>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full border font-bold shrink-0 ${
+                    report.status === 'open' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                    : report.status === 'upheld' ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                    : 'bg-gray-800 text-gray-500 border-gray-700'
+                  }`}>
+                    {report.status}
+                  </span>
+                </div>
+                {report.reviews && (
+                  <div className="bg-black/40 rounded-lg p-3 mb-3 border border-gray-800">
+                    <div className="flex gap-0.5 mb-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} className={star <= report.reviews!.rating ? 'text-yellow-500 text-xs' : 'text-gray-700 text-xs'}>★</span>
+                      ))}
+                    </div>
+                    <p className="text-gray-300 text-sm">{report.reviews.comment}</p>
+                    {report.reviews.moderation_status !== 'published' && (
+                      <p className="text-xs text-gray-500 mt-1">Current status: {report.reviews.moderation_status}</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-gray-400 text-xs mb-1">
+                  Reported for <span className="text-white font-bold">{report.reason.replace('_', ' ')}</span>
+                  {' · '}{new Date(report.created_at).toLocaleDateString()}
+                </p>
+                {report.details && <p className="text-gray-500 text-xs mb-3 italic">&quot;{report.details}&quot;</p>}
+                {report.status === 'open' && (
+                  <div className="flex gap-2 pt-3 border-t border-gray-800">
+                    <button
+                      onClick={() => handleDismissReport(report.id)}
+                      className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold px-3 py-1.5 rounded-lg transition border border-gray-700"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      onClick={() => handleUpholdReport(report.id, report.review_id)}
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1.5 rounded-lg transition border border-red-500/20"
+                    >
+                      Uphold &amp; remove review
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

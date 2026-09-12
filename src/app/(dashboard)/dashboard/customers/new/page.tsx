@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import PremiumGuard from '@/components/PremiumGuard'
 
@@ -26,7 +26,7 @@ function NewCustomerForm() {
     setLoading(true)
     setError('')
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await getSessionUser(supabase)
     if (!user) { router.push('/login'); return }
 
     const { data: business } = await supabase

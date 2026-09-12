@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 
 export type Plan = 'free' | 'growth' | 'pro'
 
@@ -105,7 +105,7 @@ export async function getSubscriptionState(businessId: string): Promise<Subscrip
  */
 export async function getCurrentPlan(): Promise<Plan> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getSessionUser(supabase)
   if (!user) return 'free'
 
   const { data: business } = await supabase

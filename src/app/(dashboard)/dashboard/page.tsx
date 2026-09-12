@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, type ReactElement } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
@@ -190,37 +190,59 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
+    // Perf note (Sep 2026 platform-wide performance audit): this used to be
+    // 8 fully sequential round trips (session -> profile -> business ->
+    // subscription -> bookings -> customers -> invoices -> messages), each
+    // waiting on the last even though most don't depend on each other. That
+    // chain is the main reason dashboard load (and anything that redirects
+    // here, like login) felt slow. Same data, same gating logic, same
+    // fallback behavior -- just batched into parallel waves where the data
+    // actually has no dependency on the previous step.
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       if (!user) { router.push('/login'); return }
 
-      const { data: profile } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
+      // profile and business both only depend on user.id, not on each other.
+      const [{ data: profile }, { data: businessData }] = await Promise.all([
+        supabase.from('profiles').select('name, role').eq('id', user.id).single(),
+        supabase.from('businesses').select('*').eq('user_id', user.id).single(),
+      ])
+
       if (profile) {
         setUserName(profile.name)
         if (profile.role === 'admin') { router.push('/admin'); return }
       }
 
-      const { data: businessData } = await supabase.from('businesses').select('*').eq('user_id', user.id).single()
       if (businessData) {
         setBusiness(businessData)
-        const subState = await getSubscriptionState(businessData.id)
+
+        // messages have no plan gating, so they can load alongside the
+        // subscription lookup instead of waiting on it.
+        const [subState, { data: messagesData }] = await Promise.all([
+          getSubscriptionState(businessData.id),
+          supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
+        ])
         setSubscription(subState)
         setPlan(subState.plan)
-
-        if (hasFeature(subState.plan, 'bookings')) {
-          const { data } = await supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-          setBookings(data || [])
-        }
-        if (hasFeature(subState.plan, 'crm')) {
-          const { data } = await supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-          setCustomers(data || [])
-        }
-        if (hasFeature(subState.plan, 'invoices')) {
-          const { data } = await supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-          setInvoices(data || [])
-        }
-        const { data: messagesData } = await supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
         setMessages(messagesData || [])
+
+        // bookings/customers/invoices only need to know the plan (for
+        // gating) -- once we have it, none of the three depend on each
+        // other, so fetch whichever are enabled together.
+        const [bookingsRes, customersRes, invoicesRes] = await Promise.all([
+          hasFeature(subState.plan, 'bookings')
+            ? supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+            : Promise.resolve({ data: null }),
+          hasFeature(subState.plan, 'crm')
+            ? supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+            : Promise.resolve({ data: null }),
+          hasFeature(subState.plan, 'invoices')
+            ? supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+            : Promise.resolve({ data: null }),
+        ])
+        if (hasFeature(subState.plan, 'bookings')) setBookings(bookingsRes.data || [])
+        if (hasFeature(subState.plan, 'crm')) setCustomers(customersRes.data || [])
+        if (hasFeature(subState.plan, 'invoices')) setInvoices(invoicesRes.data || [])
       }
       setLoading(false)
     }

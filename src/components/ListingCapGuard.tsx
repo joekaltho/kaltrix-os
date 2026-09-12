@@ -3,7 +3,7 @@
 import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { getCurrentPlan, getListingLimit } from '@/lib/check-plan'
 
 interface ListingCapGuardProps {
@@ -27,7 +27,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
         return
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       if (!user) { router.push('/login'); return }
 
       const { data: business } = await supabase

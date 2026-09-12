@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import TrustScoreCard from '@/components/TrustScoreCard'
 import type { TrustSignal } from '@/lib/trust-score'
@@ -47,7 +47,7 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       if (!user) { router.push('/login'); return }
 
       const { data: business } = await supabase
@@ -87,7 +87,7 @@ export default function EditProfilePage() {
     let logo_url = form.logo_url
 
     if (logoFile) {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getSessionUser(supabase)
       const fileExt = logoFile.name.split('.').pop()
       const fileName = `${user?.id}-${Date.now()}.${fileExt}`
 

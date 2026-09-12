@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 const industries = [
@@ -54,7 +54,7 @@ export default function CreateBusinessPage() {
     setLoading(true)
     setError('')
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await getSessionUser(supabase)
     if (!user) {
       setError('Your session has expired. Please sign in again.')
       setLoading(false)

@@ -38,6 +38,7 @@ interface Review {
   rating: number
   comment: string
   created_at: string
+  moderation_status?: 'published' | 'flagged' | 'removed'
 }
 
 interface Listing {
@@ -70,9 +71,17 @@ export default function BusinessProfilePage() {
     reviewer_name: '',
     rating: 5,
     comment: '',
+    reviewer_phone: '',
+    reviewer_email: '',
   })
   const [sendingMessage, setSendingMessage] = useState(false)
   const [sendingReview, setSendingReview] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null)
+  const [reportReason, setReportReason] = useState('fake')
+  const [reportDetails, setReportDetails] = useState('')
+  const [sendingReport, setSendingReport] = useState(false)
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,7 +95,7 @@ export default function BusinessProfilePage() {
         setBusiness(businessData)
         const { data: reviewsData } = await supabase
           .from('reviews')
-          .select('*')
+          .select('id, reviewer_name, rating, comment, created_at, moderation_status')
           .eq('business_id', businessData.id)
           .order('created_at', { ascending: false })
         setReviews(reviewsData || [])
@@ -124,22 +133,50 @@ export default function BusinessProfilePage() {
     e.preventDefault()
     if (!business) return
     setSendingReview(true)
-    await supabase.from('reviews').insert({
-      business_id: business.id,
-      reviewer_name: reviewForm.reviewer_name,
-      rating: reviewForm.rating,
-      comment: reviewForm.comment,
+    setReviewError('')
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          reviewer_name: reviewForm.reviewer_name,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+          reviewer_phone: reviewForm.reviewer_phone,
+          reviewer_email: reviewForm.reviewer_email,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setReviewError(body.error || 'Could not submit your review — please try again')
+        return
+      }
+      setReviewSubmitted(true)
+      setReviews([body.review, ...reviews])
+      setReviewForm({ reviewer_name: '', rating: 5, comment: '', reviewer_phone: '', reviewer_email: '' })
+    } catch {
+      setReviewError('Could not submit your review — please check your connection and try again')
+    } finally {
+      setSendingReview(false)
+    }
+  }
+
+  const handleSubmitReport = async (reviewId: string) => {
+    setSendingReport(true)
+    const { error } = await supabase.from('review_reports').insert({
+      review_id: reviewId,
+      business_id: business?.id,
+      reason: reportReason,
+      details: reportDetails || null,
     })
-    setReviewSubmitted(true)
-    setSendingReview(false)
-    setReviews([{
-      id: Date.now().toString(),
-      reviewer_name: reviewForm.reviewer_name,
-      rating: reviewForm.rating,
-      comment: reviewForm.comment,
-      created_at: new Date().toISOString(),
-    }, ...reviews])
-    setReviewForm({ reviewer_name: '', rating: 5, comment: '' })
+    setSendingReport(false)
+    if (!error) {
+      setReportedIds(new Set([...reportedIds, reviewId]))
+      setReportingReviewId(null)
+      setReportReason('fake')
+      setReportDetails('')
+    }
   }
 
   const handleShare = () => {
@@ -498,7 +535,14 @@ export default function BusinessProfilePage() {
                   reviews.map((review) => (
                     <div key={review.id} className="bg-surface rounded-xl p-5 border border-border shadow-card hover:shadow-lift transition">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="font-black">{review.reviewer_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-black">{review.reviewer_name}</p>
+                          {review.moderation_status === 'flagged' && (
+                            <span className="bg-yellow-500/10 text-yellow-700 text-xs px-2 py-0.5 rounded-full border border-yellow-500/20 font-medium">
+                              Under review
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <span key={star} className={star <= review.rating ? 'text-yellow-500' : 'text-ivoryDim'}>
@@ -508,7 +552,47 @@ export default function BusinessProfilePage() {
                         </div>
                       </div>
                       <p className="text-inkMid text-sm">{review.comment}</p>
-                      <p className="text-inkFaint text-xs mt-2">{new Date(review.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-inkFaint text-xs">{new Date(review.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        {reportedIds.has(review.id) ? (
+                          <span className="text-inkFaint text-xs">Reported</span>
+                        ) : reportingReviewId === review.id ? (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={reportReason}
+                              onChange={(e) => setReportReason(e.target.value)}
+                              className="bg-ivory border border-border rounded-lg px-2 py-1 text-xs text-ink"
+                            >
+                              <option value="fake">Fake review</option>
+                              <option value="spam">Spam</option>
+                              <option value="self_review">Business reviewing itself</option>
+                              <option value="offensive">Offensive content</option>
+                              <option value="irrelevant">Irrelevant</option>
+                              <option value="other">Other</option>
+                            </select>
+                            <button
+                              onClick={() => handleSubmitReport(review.id)}
+                              disabled={sendingReport}
+                              className="text-xs font-bold text-brand hover:text-brand/80 transition disabled:opacity-50"
+                            >
+                              {sendingReport ? 'Sending...' : 'Submit'}
+                            </button>
+                            <button
+                              onClick={() => setReportingReviewId(null)}
+                              className="text-xs text-inkFaint hover:text-ink transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setReportingReviewId(review.id)}
+                            className="text-xs text-inkFaint hover:text-ink transition"
+                          >
+                            Report
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -527,6 +611,9 @@ export default function BusinessProfilePage() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmitReview} className="space-y-4">
+                      {reviewError && (
+                        <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{reviewError}</p>
+                      )}
                       <input
                         type="text"
                         placeholder="Your name"
@@ -558,6 +645,23 @@ export default function BusinessProfilePage() {
                         required
                         className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition resize-none"
                       />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="tel"
+                          placeholder="Phone (optional)"
+                          value={reviewForm.reviewer_phone}
+                          onChange={(e) => setReviewForm({ ...reviewForm, reviewer_phone: e.target.value })}
+                          className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email (optional)"
+                          value={reviewForm.reviewer_email}
+                          onChange={(e) => setReviewForm({ ...reviewForm, reviewer_email: e.target.value })}
+                          className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition"
+                        />
+                      </div>
+                      <p className="text-inkFaint text-xs -mt-2">Optional — helps us confirm you actually did business here if this review is ever questioned. Never shown publicly.</p>
                       <button
                         type="submit"
                         disabled={sendingReview}

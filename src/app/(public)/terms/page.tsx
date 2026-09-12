@@ -166,13 +166,38 @@ export default function TermsPage() {
             a perpetual, royalty-free license to display that review on the platform.
           </p>
           <p>
-            Reviews must be honest and based on genuine experience. We reserve the right to remove
-            reviews that are fake, abusive, or violate these Terms. We do not verify the authenticity
-            of reviews and are not liable for their content.
+            Reviews must be honest and based on genuine experience. You agree not to:
+          </p>
+          <ul className="list-none space-y-2 pl-4">
+            {[
+              'Post a fake review, or a review for a business you have no genuine experience with',
+              'Review your own business',
+              'Create or use multiple accounts or identities to manipulate ratings',
+              'Buy, sell, or otherwise exchange reviews for money or other consideration',
+              'Coordinate reviews with friends, employees, or other businesses to manipulate reputation',
+              'Offer a reward, discount, or incentive specifically for a positive review',
+              'Pressure a customer to change or remove an honest negative review',
+              'Retaliate against a customer for an honest negative review',
+              'Post spam or content unrelated to a genuine business experience',
+            ].map(item => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="text-red-500 mt-0.5 flex-shrink-0">✕</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+          <p>
+            Anyone can report a review that appears to violate this policy. A report does not itself
+            remove or relabel a review — it flags the review for human review by our team, who may
+            dismiss the report, or remove/restrict the review if the report is upheld. We do not
+            independently verify every review before it is published, and we are not liable for
+            reviewers&apos; content, but we will act on reports and on other signals of manipulated
+            reviews (such as unusual review bursts or coordinated accounts) in good faith.
           </p>
           <p>
             Business owners may not post fake reviews for their own businesses or request reviews in
-            exchange for incentives. Violation may result in account termination.
+            exchange for incentives. Violation may result in review removal, TrustScore impact, or
+            account termination.
           </p>
         </Section>
 
