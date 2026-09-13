@@ -25,6 +25,10 @@ export interface Business {
   is_verified: boolean
   slug: string
   created_at: string
+  // Optional, business-provided free text shown on the customer-facing
+  // invoice view (see /invoice/[id]) -- e.g. bank transfer details or a
+  // mobile money handle. Never fabricated; empty until the business sets it.
+  payment_instructions?: string | null
 }
 
 export interface Customer {

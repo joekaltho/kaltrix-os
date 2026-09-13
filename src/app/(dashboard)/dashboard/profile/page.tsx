@@ -28,6 +28,7 @@ export default function EditProfilePage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -43,32 +44,39 @@ export default function EditProfilePage() {
     website_url: '',
     description: '',
     logo_url: '',
+    payment_instructions: '',
   })
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      const { data: { user } } = await getSessionUser(supabase)
-      if (!user) { router.push('/login'); return }
+      setLoadError('')
+      try {
+        const { data: { user } } = await getSessionUser(supabase)
+        if (!user) { router.push('/login'); return }
 
-      const { data: business } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
 
-      if (business) {
-        setBusinessId(business.id)
-        setTrustScore(business.trust_score || 0)
-        setTrustSignals(business.trust_signals || [])
-        setForm({
-          business_name: business.business_name || '',
-          industry: business.industry || '',
-          city: business.city || '',
-          phone: business.phone || '',
-          website_url: business.website_url || '',
-          description: business.description || '',
-          logo_url: business.logo_url || '',
-        })
+        if (business) {
+          setBusinessId(business.id)
+          setTrustScore(business.trust_score || 0)
+          setTrustSignals(business.trust_signals || [])
+          setForm({
+            business_name: business.business_name || '',
+            industry: business.industry || '',
+            city: business.city || '',
+            phone: business.phone || '',
+            website_url: business.website_url || '',
+            description: business.description || '',
+            logo_url: business.logo_url || '',
+            payment_instructions: business.payment_instructions || '',
+          })
+        }
+      } catch {
+        setLoadError('Could not load your profile. Check your connection and try again.')
       }
       setLoading(false)
     }
@@ -130,6 +138,28 @@ export default function EditProfilePage() {
     return (
       <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-ink font-bold mb-1">Something went wrong</p>
+          <p className="text-inkFaint text-sm mb-6">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
@@ -238,6 +268,23 @@ export default function EditProfilePage() {
               <label className={labelClass}>Business Description</label>
               <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="Tell customers what your business does..." className={inputClass + ' resize-none'} />
               <p className="text-inkFaint text-xs mt-1.5">{form.description.length} characters</p>
+            </div>
+          </div>
+
+          {/* Invoice Payment Instructions */}
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Invoice Payment Instructions</h2>
+            <div>
+              <label className={labelClass}>How should customers pay you?</label>
+              <textarea
+                name="payment_instructions"
+                value={form.payment_instructions}
+                onChange={handleChange}
+                rows={3}
+                placeholder="e.g. Bank transfer — GTBank, 0123456789, Your Business Name. Or: Opay — 08012345678"
+                className={inputClass + ' resize-none'}
+              />
+              <p className="text-inkFaint text-xs mt-1.5">Shown to customers on the invoice link you share with them. Leave blank to just show your phone number instead.</p>
             </div>
           </div>
 

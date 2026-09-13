@@ -6,12 +6,12 @@ import { ThemeProvider } from '@/context/ThemeContext'
 export const metadata: Metadata = {
   title: "KaltrixOS — Africa's Business Operating System",
   description:
-    'KaltrixOS gives African businesses a verified online presence, a TrustScore, and a complete operating system — bookings, CRM, invoicing and revenue tracking. Built for Nigerian SMEs.',
+    'KaltrixOS gives African businesses an online presence with a TrustScore, and a complete operating system — bookings, CRM, invoicing and revenue tracking. Built for Nigerian SMEs.',
 
   keywords: [
     'Nigerian business directory',
     'Africa business platform',
-    'verified businesses Nigeria',
+    'trusted businesses Nigeria',
     'SME operating system',
     'business discovery Nigeria',
     'KaltrixOS',

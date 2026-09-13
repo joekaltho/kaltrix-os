@@ -11,6 +11,7 @@ import { Business, Booking, Message, Invoice, Customer } from '@/types'
 import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
 import ListingsPanel from '@/components/ListingsPanel'
 import BusinessPulsePanel from '@/components/BusinessPulsePanel'
+import CopyLinkButton from '@/components/CopyLinkButton'
 
 type Tab = 'overview' | 'inbox' | 'bookings' | 'customers' | 'invoices' | 'listings' | 'pulse'
 
@@ -179,6 +180,7 @@ export default function DashboardPage() {
   const supabase = createClient()
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [userName, setUserName] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -199,50 +201,60 @@ export default function DashboardPage() {
     // fallback behavior -- just batched into parallel waves where the data
     // actually has no dependency on the previous step.
     const fetchData = async () => {
-      const { data: { user } } = await getSessionUser(supabase)
-      if (!user) { router.push('/login'); return }
+      setLoadError('')
+      try {
+        const { data: { user } } = await getSessionUser(supabase)
+        if (!user) { router.push('/login'); return }
 
-      // profile and business both only depend on user.id, not on each other.
-      const [{ data: profile }, { data: businessData }] = await Promise.all([
-        supabase.from('profiles').select('name, role').eq('id', user.id).single(),
-        supabase.from('businesses').select('*').eq('user_id', user.id).single(),
-      ])
-
-      if (profile) {
-        setUserName(profile.name)
-        if (profile.role === 'admin') { router.push('/admin'); return }
-      }
-
-      if (businessData) {
-        setBusiness(businessData)
-
-        // messages have no plan gating, so they can load alongside the
-        // subscription lookup instead of waiting on it.
-        const [subState, { data: messagesData }] = await Promise.all([
-          getSubscriptionState(businessData.id),
-          supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
+        // profile and business both only depend on user.id, not on each other.
+        const [{ data: profile }, { data: businessData }] = await Promise.all([
+          supabase.from('profiles').select('name, role').eq('id', user.id).single(),
+          supabase.from('businesses').select('*').eq('user_id', user.id).single(),
         ])
-        setSubscription(subState)
-        setPlan(subState.plan)
-        setMessages(messagesData || [])
 
-        // bookings/customers/invoices only need to know the plan (for
-        // gating) -- once we have it, none of the three depend on each
-        // other, so fetch whichever are enabled together.
-        const [bookingsRes, customersRes, invoicesRes] = await Promise.all([
-          hasFeature(subState.plan, 'bookings')
-            ? supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-            : Promise.resolve({ data: null }),
-          hasFeature(subState.plan, 'crm')
-            ? supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-            : Promise.resolve({ data: null }),
-          hasFeature(subState.plan, 'invoices')
-            ? supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-            : Promise.resolve({ data: null }),
-        ])
-        if (hasFeature(subState.plan, 'bookings')) setBookings(bookingsRes.data || [])
-        if (hasFeature(subState.plan, 'crm')) setCustomers(customersRes.data || [])
-        if (hasFeature(subState.plan, 'invoices')) setInvoices(invoicesRes.data || [])
+        if (profile) {
+          setUserName(profile.name)
+          if (profile.role === 'admin') { router.push('/admin'); return }
+        }
+
+        if (businessData) {
+          setBusiness(businessData)
+
+          // messages have no plan gating, so they can load alongside the
+          // subscription lookup instead of waiting on it.
+          const [subState, { data: messagesData }] = await Promise.all([
+            getSubscriptionState(businessData.id),
+            supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
+          ])
+          setSubscription(subState)
+          setPlan(subState.plan)
+          setMessages(messagesData || [])
+
+          // bookings/customers/invoices only need to know the plan (for
+          // gating) -- once we have it, none of the three depend on each
+          // other, so fetch whichever are enabled together.
+          const [bookingsRes, customersRes, invoicesRes] = await Promise.all([
+            hasFeature(subState.plan, 'bookings')
+              ? supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+              : Promise.resolve({ data: null }),
+            hasFeature(subState.plan, 'crm')
+              ? supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+              : Promise.resolve({ data: null }),
+            hasFeature(subState.plan, 'invoices')
+              ? supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
+              : Promise.resolve({ data: null }),
+          ])
+          if (hasFeature(subState.plan, 'bookings')) setBookings(bookingsRes.data || [])
+          if (hasFeature(subState.plan, 'crm')) setCustomers(customersRes.data || [])
+          if (hasFeature(subState.plan, 'invoices')) setInvoices(invoicesRes.data || [])
+        }
+      } catch {
+        // A thrown network/fetch failure used to leave `loading` stuck at
+        // true forever -- an infinite spinner with no explanation and no
+        // way forward. Real risk given the latency/reliability profile
+        // this app runs under (see the P0 performance work). Surface it
+        // instead, with a retry.
+        setLoadError('Could not load your dashboard. Check your connection and try again.')
       }
       setLoading(false)
     }
@@ -290,6 +302,28 @@ export default function DashboardPage() {
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-inkFaint text-sm">Loading KaltrixOS...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center font-sans px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-ink font-bold mb-1">Something went wrong</p>
+          <p className="text-inkFaint text-sm mb-6">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     )
@@ -687,15 +721,18 @@ export default function DashboardPage() {
                           <span className="text-xs font-black text-brand">₦{invoice.total.toLocaleString()}</span>
                         </div>
                       </div>
-                      {invoice.status === 'unpaid' && (
-                        <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <CopyLinkButton url={`${window.location.origin}/invoice/${invoice.id}`} label="Share Invoice" copiedLabel="Link copied!" />
+                        {invoice.status === 'unpaid' && (
+                          <>
+                            <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="gradient-brand text-white text-xs font-black px-3 py-1.5 rounded-lg transition">Mark as Paid</button>
+                            <button onClick={() => updateInvoiceStatus(invoice.id, 'overdue')} className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 transition">Mark Overdue</button>
+                          </>
+                        )}
+                        {invoice.status === 'overdue' && (
                           <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="gradient-brand text-white text-xs font-black px-3 py-1.5 rounded-lg transition">Mark as Paid</button>
-                          <button onClick={() => updateInvoiceStatus(invoice.id, 'overdue')} className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 transition">Mark Overdue</button>
-                        </div>
-                      )}
-                      {invoice.status === 'overdue' && (
-                        <button onClick={() => updateInvoiceStatus(invoice.id, 'paid')} className="gradient-brand text-white text-xs font-black px-3 py-1.5 rounded-lg transition">Mark as Paid</button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

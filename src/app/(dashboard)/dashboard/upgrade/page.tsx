@@ -58,12 +58,9 @@ const PLANS: PlanConfig[] = [
     features: [
       'Everything in Free',
       'Unlimited Shop listings',
-      'Verified badge on profile',
-      'Priority discovery listing',
       'Bookings management',
       'Customer CRM',
       'Invoice generator',
-      'WhatsApp notifications',
     ],
     prices: { '6month': { ngn: 55000, usd: 33 }, annual: { ngn: 99000, usd: 60 } },
     monthlyEquiv: { '6month': { ngn: 9167, usd: '5.50' }, annual: { ngn: 8250, usd: '5' } },
@@ -77,7 +74,6 @@ const PLANS: PlanConfig[] = [
     highlight: false,
     features: [
       'Everything in Growth',
-      'Featured homepage placement',
       'Revenue & booking analytics',
       'Priority support',
       'Custom agency consultation',
@@ -239,7 +235,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <Link href="/dashboard" className="text-inkFaint hover:text-ink transition text-sm font-medium">
-            ← Back to Dashboard
+            ← Dashboard
           </Link>
           <div className="bg-brandBg border border-brand/20 rounded-xl px-4 py-2 text-center">
             <p className="text-inkFaint text-xs">Current Plan</p>

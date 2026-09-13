@@ -7,8 +7,8 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 const features = [
   {
-    title: 'Verified Profile',
-    desc: 'A public business page with your TrustScore, reviews, and verified badge — everything a new customer needs to trust you.',
+    title: 'Public Business Profile',
+    desc: 'A public business page with your TrustScore and reviews — everything a new customer needs to trust you. Verified badges are available on request.',
     icon: (
       <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -174,7 +174,7 @@ export default function LandingPage() {
           <FadeUp delay={200}>
             <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 sm:mb-10">
               KaltrixOS is the complete business operating system built for African SMEs. 
-              A verified profile. A TrustScore. Bookings, invoices, CRM — all in one dashboard. 
+              A public profile. A TrustScore. Bookings, invoices, CRM — all in one dashboard. 
               Built in Nigeria. Built for Africa.
             </p>
           </FadeUp>
@@ -324,12 +324,12 @@ export default function LandingPage() {
                 One dashboard.<br />Everything handled.
               </h2>
               <p className="text-inkMid leading-relaxed mb-6 text-sm sm:text-base">
-                KaltrixOS gives every SMB a verified profile, a TrustScore customers can see,
+                KaltrixOS gives every SMB a public profile, a TrustScore customers can see,
                 and a full business OS — bookings, CRM, invoices — in one place.
               </p>
               <div className="space-y-3">
                 {[
-                  'Verified business profile, indexed and discoverable',
+                  'Public business profile, indexed and discoverable',
                   'TrustScore that builds credibility automatically',
                   'Bookings, CRM and invoices in one dashboard',
                   'Analytics to understand your business',
@@ -411,7 +411,7 @@ export default function LandingPage() {
               price: '₦8,250',
               period: '/mo equiv',
               desc: 'For businesses ready to grow',
-              features: ['Everything in Free', 'Unlimited Shop', 'Verified badge', 'Priority listing', 'Bookings', 'CRM', 'Invoices'],
+              features: ['Everything in Free', 'Unlimited Shop', 'Bookings', 'CRM', 'Invoices'],
               highlight: true,
               cta: 'Start Growth',
               ctaLink: '/signup',
@@ -421,7 +421,7 @@ export default function LandingPage() {
               price: '₦20,800',
               period: '/mo equiv',
               desc: 'For businesses that dominate',
-              features: ['Everything in Growth', 'Featured placement', 'Analytics', 'Priority support', 'Agency consultation'],
+              features: ['Everything in Growth', 'Analytics', 'Priority support', 'Agency consultation'],
               highlight: false,
               cta: 'Start Pro',
               ctaLink: '/signup',
@@ -484,7 +484,7 @@ export default function LandingPage() {
           </FadeUp>
           <FadeUp delay={100}>
             <p className="text-white/40 text-base sm:text-lg mb-8 max-w-2xl mx-auto transition-all duration-500 group-hover:text-white/60">
-              Join thousands of African businesses using KaltrixOS to build trust, close more deals, and grow faster.
+              Build trust, close more deals, and grow faster — free to start, no credit card required.
             </p>
           </FadeUp>
           <FadeUp delay={200}>

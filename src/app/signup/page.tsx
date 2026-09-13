@@ -82,12 +82,12 @@ export default function RegisterPage() {
             Your business deserves<br />to be discovered.
           </h2>
           <p className="text-white/40 text-sm leading-relaxed max-w-xs">
-            Set up your verified business profile in minutes. Get found. Build trust. Grow.
+            Set up your business profile in minutes. Get found. Build trust. Grow.
           </p>
 
           <div className="mt-10 space-y-4">
             {[
-              { icon: '✓', text: 'Free verified business profile' },
+              { icon: '✓', text: 'Free business profile' },
               { icon: '✓', text: 'TrustScore visible to customers' },
               { icon: '✓', text: 'Listed on Discover instantly' },
               { icon: '✓', text: 'No credit card required' },

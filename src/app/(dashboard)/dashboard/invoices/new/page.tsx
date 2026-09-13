@@ -8,11 +8,15 @@ import { InvoiceItem } from '@/types'
 import PremiumGuard from '@/components/PremiumGuard'
 import { useBusinessId } from '@/lib/business-context'
 
+const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
+const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
+
 function NewInvoiceForm() {
   const router = useRouter()
   const supabase = createClient()
   const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [items, setItems] = useState<InvoiceItem[]>([
     { name: '', quantity: 1, price: 0 }
@@ -77,33 +81,56 @@ function NewInvoiceForm() {
       return
     }
 
-    router.push('/dashboard')
+    setSuccess(true)
+    setTimeout(() => router.push('/dashboard'), 1500)
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-surface rounded-2xl border border-border shadow-lift p-12">
+            <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-brand">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-black text-ink mb-2">Invoice Created</h1>
+            <p className="text-inkFaint text-sm">Taking you back to your dashboard...</p>
+            <div className="mt-4 flex justify-center">
+              <span className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white px-4 py-10">
-      <div className="max-w-xl mx-auto">
+    <div className="min-h-screen bg-ivory font-sans">
+      <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
+          <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
+        </div>
+      </nav>
+
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
-          <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
-            ← Back to Dashboard
-          </Link>
+          <h1 className="text-2xl font-black text-ink">New Invoice</h1>
+          <p className="text-inkFaint text-sm mt-1">Create an invoice for your customer</p>
         </div>
 
-        <h1 className="text-2xl font-bold mb-2">New Invoice</h1>
-        <p className="text-gray-400 mb-8">Create an invoice for your customer</p>
-
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 mb-6 text-sm">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Customer Details */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-            <h2 className="font-semibold">Customer Details</h2>
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Customer Details</h2>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Customer Name *</label>
+              <label className={labelClass}>Customer Name *</label>
               <input
                 type="text"
                 name="customer_name"
@@ -111,80 +138,80 @@ function NewInvoiceForm() {
                 onChange={handleChange}
                 required
                 placeholder="e.g. Amina Bello"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Customer Phone</label>
+              <label className={labelClass}>Customer Phone</label>
               <input
                 type="tel"
                 name="customer_phone"
                 value={form.customer_phone}
                 onChange={handleChange}
                 placeholder="e.g. 08012345678"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Due Date</label>
+              <label className={labelClass}>Due Date</label>
               <input
                 type="date"
                 name="due_date"
                 value={form.due_date}
                 onChange={handleChange}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
+                className={inputClass}
               />
             </div>
           </div>
 
           {/* Items */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-            <h2 className="font-semibold">Invoice Items</h2>
+          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Invoice Items</h2>
 
             {items.map((item, index) => (
-              <div key={index} className="space-y-3 pb-4 border-b border-gray-800 last:border-0 last:pb-0">
+              <div key={index} className="space-y-3 pb-4 border-b border-border last:border-0 last:pb-0">
                 <div>
-                  <label className="text-sm text-gray-400 mb-1 block">Item Name *</label>
+                  <label className={labelClass}>Item Name *</label>
                   <input
                     type="text"
                     value={item.name}
                     onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                     required
                     placeholder="e.g. Haircut, Web Design, Delivery"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition"
+                    className={inputClass}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm text-gray-400 mb-1 block">Quantity</label>
+                    <label className={labelClass}>Quantity</label>
                     <input
                       type="number"
                       value={item.quantity}
                       onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
                       min="1"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
+                      className={inputClass}
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-400 mb-1 block">Price (N)</label>
+                    <label className={labelClass}>Price (₦)</label>
                     <input
                       type="number"
                       value={item.price}
                       onChange={(e) => handleItemChange(index, 'price', Number(e.target.value))}
                       min="0"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-400 transition"
+                      className={inputClass}
                     />
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-green-400 text-sm font-medium">
-                    Subtotal: N{(item.quantity * item.price).toLocaleString()}
+                  <p className="text-brand text-sm font-bold">
+                    Subtotal: ₦{(item.quantity * item.price).toLocaleString()}
                   </p>
                   {items.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeItem(index)}
-                      className="text-red-400 text-sm hover:text-red-300 transition"
+                      className="text-red-600 text-sm hover:text-red-700 transition font-medium"
                     >
                       Remove
                     </button>
@@ -196,26 +223,28 @@ function NewInvoiceForm() {
             <button
               type="button"
               onClick={addItem}
-              className="w-full border border-dashed border-gray-700 rounded-lg py-3 text-gray-400 hover:text-white hover:border-gray-500 transition text-sm"
+              className="w-full border border-dashed border-border rounded-xl py-3 text-inkFaint hover:text-ink hover:border-inkFaint transition text-sm font-medium"
             >
               + Add Another Item
             </button>
           </div>
 
           {/* Total */}
-          <div className="bg-gray-900 rounded-2xl p-6 border border-green-400/20">
+          <div className="bg-surface rounded-2xl p-6 border border-brand/20 shadow-card">
             <div className="flex items-center justify-between">
-              <p className="text-gray-400 font-medium">Total Amount</p>
-              <p className="text-3xl font-bold text-green-400">N{total.toLocaleString()}</p>
+              <p className="text-inkFaint font-bold text-sm uppercase tracking-wider">Total Amount</p>
+              <p className="text-3xl font-black text-brand">₦{total.toLocaleString()}</p>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-400 hover:bg-green-300 text-black font-semibold rounded-lg px-4 py-4 transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
           >
-            {loading ? 'Creating invoice...' : 'Create Invoice'}
+            {loading ? (
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating invoice...</>
+            ) : 'Create Invoice'}
           </button>
         </form>
       </div>

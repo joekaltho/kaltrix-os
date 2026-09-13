@@ -57,6 +57,7 @@ export default function BusinessProfilePage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [messageSent, setMessageSent] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [activeTab, setActiveTab] = useState('shop')
@@ -85,28 +86,38 @@ export default function BusinessProfilePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: businessData } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('slug', params.slug)
-        .single()
-
-      if (businessData) {
-        setBusiness(businessData)
-        const { data: reviewsData } = await supabase
-          .from('reviews')
-          .select('id, reviewer_name, rating, comment, created_at, moderation_status')
-          .eq('business_id', businessData.id)
-          .order('created_at', { ascending: false })
-        setReviews(reviewsData || [])
-
-        const { data: listingsData } = await supabase
-          .from('listings')
+      setLoadError('')
+      try {
+        const { data: businessData } = await supabase
+          .from('businesses')
           .select('*')
-          .eq('business_id', businessData.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-        setListings(listingsData || [])
+          .eq('slug', params.slug)
+          .single()
+
+        if (businessData) {
+          setBusiness(businessData)
+          // reviews and listings don't depend on each other -- fetch together.
+          const [{ data: reviewsData }, { data: listingsData }] = await Promise.all([
+            supabase
+              .from('reviews')
+              .select('id, reviewer_name, rating, comment, created_at, moderation_status')
+              .eq('business_id', businessData.id)
+              .order('created_at', { ascending: false }),
+            supabase
+              .from('listings')
+              .select('*')
+              .eq('business_id', businessData.id)
+              .eq('is_active', true)
+              .order('created_at', { ascending: false }),
+          ])
+          setReviews(reviewsData || [])
+          setListings(listingsData || [])
+        }
+      } catch {
+        // A thrown network failure used to leave `loading` stuck at true
+        // forever -- an infinite spinner on the one page a potential
+        // customer is most likely to land on cold.
+        setLoadError('Could not load this business profile. Check your connection and try again.')
       }
       setLoading(false)
     }
@@ -245,6 +256,28 @@ export default function BusinessProfilePage() {
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center text-center px-6 font-sans">
+        <div className="max-w-sm">
+          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-ink font-bold mb-1">Something went wrong</p>
+          <p className="text-inkFaint text-sm mb-6">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!business) {
     return (
       <div className="min-h-screen bg-ivory flex items-center justify-center text-center px-6 font-sans">
@@ -283,7 +316,7 @@ export default function BusinessProfilePage() {
             
             <p className="text-inkFaint text-sm mb-4">Share {business.business_name} with your network</p>
             
-            <div className="grid grid-cols-5 gap-2 mb-4">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
               {[
                 { icon: '📱', label: 'WhatsApp', action: 'whatsapp' },
                 { icon: '🐦', label: 'Twitter', action: 'twitter' },

@@ -42,7 +42,7 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <h2 className="text-4xl font-black text-white leading-tight mb-4">
-            Every verified business<br />deserves to be found.
+            Every trustworthy business<br />deserves to be found.
           </h2>
           <p className="text-white/40 text-base leading-relaxed max-w-xs">
             Bookings, CRM, invoices and trust — all in one place for Nigerian SMBs.

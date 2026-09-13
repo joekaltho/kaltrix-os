@@ -117,21 +117,30 @@ export default function DiscoverPage() {
   useEffect(() => {
     const fetchBusinesses = async () => {
       setError('')
-      const { data, error: fetchError } = await supabase
-        .from('businesses')
-        // Explicit column list: never widen this to '*'. A '*' select ships
-        // every column in the table to anonymous visitors, including any
-        // internal-only fields added later that aren't in the Business type.
-        .select('id, business_name, industry, city, phone, website_url, trust_score, is_verified, slug, logo_url, description')
-        .order('trust_score', { ascending: false })
-        .limit(BUSINESSES_PAGE_SIZE)
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('businesses')
+          // Explicit column list: never widen this to '*'. A '*' select ships
+          // every column in the table to anonymous visitors, including any
+          // internal-only fields added later that aren't in the Business type.
+          .select('id, business_name, industry, city, phone, website_url, trust_score, is_verified, slug, logo_url, description')
+          .order('trust_score', { ascending: false })
+          .limit(BUSINESSES_PAGE_SIZE)
 
-      if (fetchError) {
-        console.error('Failed to load businesses:', fetchError)
+        if (fetchError) {
+          console.error('Failed to load businesses:', fetchError)
+          setError('Something went wrong loading businesses. Please refresh the page.')
+          setBusinesses([])
+        } else {
+          setBusinesses(data || [])
+        }
+      } catch (err) {
+        // The check above already handles a Postgres/RLS-level error; this
+        // catches a genuinely thrown exception (e.g. no network at all)
+        // that would otherwise leave `loading` stuck at true forever.
+        console.error('Failed to load businesses:', err)
         setError('Something went wrong loading businesses. Please refresh the page.')
         setBusinesses([])
-      } else {
-        setBusinesses(data || [])
       }
       setLoading(false)
     }
@@ -198,7 +207,7 @@ export default function DiscoverPage() {
 
           <FadeUp delay={200}>
             <p className="text-inkFaint text-base sm:text-lg mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed">
-              Every business is scored and verified. Know who to trust before you show up.
+              Every business gets a real, evidence-based TrustScore. Know who to trust before you show up.
             </p>
           </FadeUp>
 
@@ -375,7 +384,7 @@ export default function DiscoverPage() {
                   Is your business listed?
                 </h3>
                 <p className="text-white/40 text-sm mb-6 transition-all duration-500 group-hover:text-white/60">
-                  Join thousands of businesses getting discovered on KaltrixOS
+                  Get discovered by customers looking for businesses like yours
                 </p>
                 <Link
                   href="/signup"

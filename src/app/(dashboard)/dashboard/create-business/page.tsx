@@ -132,7 +132,7 @@ export default function CreateBusinessPage() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
           <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">
-            ← Back to Dashboard
+            ← Dashboard
           </Link>
         </div>
       </nav>

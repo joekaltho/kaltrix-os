@@ -59,6 +59,7 @@ export default function AdminPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
@@ -69,32 +70,37 @@ export default function AdminPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await getSessionUser(supabase)
-      if (!user) { router.push('/login'); return }
+      setLoadError('')
+      try {
+        const { data: { user } } = await getSessionUser(supabase)
+        if (!user) { router.push('/login'); return }
 
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', user.id).single()
+        const { data: profile } = await supabase
+          .from('profiles').select('role').eq('id', user.id).single()
 
-      if (!profile || profile.role !== 'admin') {
-        router.push('/dashboard')
-        return
+        if (!profile || profile.role !== 'admin') {
+          router.push('/dashboard')
+          return
+        }
+
+        const [businessesRes, profilesRes, waitlistRes, subsRes, reportsRes] = await Promise.all([
+          supabase.from('businesses').select('*').order('created_at', { ascending: false }),
+          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+          supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
+          supabase.from('subscriptions').select('business_id, plan, status, expires_at'),
+          supabase.from('review_reports')
+            .select('*, reviews(reviewer_name, rating, comment, moderation_status), businesses(business_name)')
+            .order('created_at', { ascending: false }),
+        ])
+
+        setBusinesses(businessesRes.data || [])
+        setProfiles(profilesRes.data || [])
+        setWaitlist(waitlistRes.data || [])
+        setSubscriptions(subsRes.data || [])
+        setReviewReports((reportsRes.data as unknown as ReviewReport[]) || [])
+      } catch {
+        setLoadError('Could not load admin data. Check your connection and try again.')
       }
-
-      const [businessesRes, profilesRes, waitlistRes, subsRes, reportsRes] = await Promise.all([
-        supabase.from('businesses').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
-        supabase.from('subscriptions').select('business_id, plan, status, expires_at'),
-        supabase.from('review_reports')
-          .select('*, reviews(reviewer_name, rating, comment, moderation_status), businesses(business_name)')
-          .order('created_at', { ascending: false }),
-      ])
-
-      setBusinesses(businessesRes.data || [])
-      setProfiles(profilesRes.data || [])
-      setWaitlist(waitlistRes.data || [])
-      setSubscriptions(subsRes.data || [])
-      setReviewReports((reportsRes.data as unknown as ReviewReport[]) || [])
       setLoading(false)
     }
     fetchData()
@@ -208,6 +214,23 @@ export default function AdminPage() {
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-green-400 text-sm">Loading Admin...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-red-400 font-bold mb-1">Something went wrong</p>
+          <p className="text-gray-400 text-sm mb-6">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-green-400 text-black font-black px-6 py-3 rounded-xl transition text-sm"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     )

@@ -69,10 +69,9 @@ function waitlistEmailHtml(name?: string) {
             <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
               <p style="color: #0a0a0a; font-size: 14px; font-weight: 700; margin: 0 0 4px;">✨ What's waiting for you:</p>
               <ul style="color: #3a3a3a; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                <li>Verified business profile</li>
+                <li>Public business profile</li>
                 <li>TrustScore to build credibility</li>
                 <li>Bookings, CRM, and Invoices</li>
-                <li>Priority listing in discovery</li>
                 <li>Analytics to grow your business</li>
               </ul>
             </div>
