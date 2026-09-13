@@ -39,16 +39,13 @@ export default function RegisterPage() {
     if (!data.user) { setError('Signup failed — please try again.'); setLoading(false); return }
 
     if (data.session) {
-      // Email auto-confirmed — insert profile and go straight to onboarding
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        name: form.name,
-        email: form.email,
-        role: 'business',
-      })
-      if (profileError) {
-        console.error('Profile insert error:', profileError.message)
-      }
+      // Email auto-confirmed. The handle_new_user() trigger on auth.users
+      // (AFTER INSERT) already created this exact profiles row atomically
+      // with the signup itself -- same id, name (from raw_user_meta_data,
+      // populated by the `options.data` below), email, and role. An
+      // explicit insert here would only ever hit a duplicate-key conflict
+      // against a row that's already correct, so there's nothing to do
+      // but move on to onboarding.
       router.push('/dashboard/create-business')
     } else {
       // Email confirmation required — save pending profile data and show confirm screen
