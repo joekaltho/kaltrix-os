@@ -2,13 +2,44 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
+import { PLAN_PRICES_NGN, monthlyEquivNgn, type BillingPeriod } from '@/lib/plans'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
+
+const PRICING_PLANS = [
+  {
+    key: 'free' as const,
+    name: 'Free',
+    desc: 'Get found online today',
+    features: ['Business profile', 'TrustScore', 'Basic discovery listing', 'Customer inbox', 'Shop (10 listings)'],
+    highlight: false,
+    cta: 'Start Free',
+    ctaLink: '/signup',
+  },
+  {
+    key: 'growth' as const,
+    name: 'Growth',
+    desc: 'For businesses ready to grow',
+    features: ['Everything in Free', 'Unlimited Shop', 'Bookings', 'CRM', 'Invoices'],
+    highlight: true,
+    cta: 'Start Growth',
+    ctaLink: '/signup',
+  },
+  {
+    key: 'pro' as const,
+    name: 'Pro',
+    desc: 'For businesses that dominate',
+    features: ['Everything in Growth', 'Analytics', 'Priority support', 'Agency consultation'],
+    highlight: false,
+    cta: 'Start Pro',
+    ctaLink: '/signup',
+  },
+]
 
 const features = [
   {
     title: 'Public Business Profile',
-    desc: 'A public business page with your TrustScore and reviews — everything a new customer needs to trust you. Verified badges are available on request.',
+    desc: 'A public business page with your TrustScore and reviews — everything a new customer needs to trust you.',
     icon: (
       <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -97,6 +128,7 @@ const FadeUp = ({ children, delay = 0, className = '' }: { children: React.React
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [pricingBilling, setPricingBilling] = useState<BillingPeriod>('annual')
 
   useEffect(() => {
     const supabase = createClient()
@@ -243,7 +275,7 @@ export default function LandingPage() {
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'Verification', status: 'Verified' },
-                    { label: 'Discovery', status: 'Priority listing' },
+                    { label: 'Discovery', status: 'Listed on Discover' },
                     { label: 'Reviews', status: '4.8 · 42 reviews' },
                   ].map((item) => (
                     <div key={item.label} className="bg-ivory rounded-lg px-3 sm:px-4 py-3 border border-border transition-all duration-300 hover:border-brand/20 hover:-translate-y-0.5">
@@ -390,43 +422,48 @@ export default function LandingPage() {
               <span className="w-8 h-px bg-brand/30" />
             </p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-4">Start free. Grow when ready.</h2>
-            <p className="text-inkMid text-sm sm:text-base">No monthly traps. 6-month and annual plans only.</p>
+            <p className="text-inkMid text-sm sm:text-base">Monthly, 6-month, or annual — longer plans cost less per month.</p>
           </div>
         </FadeUp>
 
+        {/* Billing Toggle */}
+        <div className="flex justify-center mb-8 sm:mb-10">
+          <div className="max-w-full overflow-x-auto">
+          <div className="bg-white border border-border rounded-2xl p-1.5 flex items-center gap-1 shadow-card w-max">
+            <button
+              onClick={() => setPricingBilling('monthly')}
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                pricingBilling === 'monthly' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setPricingBilling('6month')}
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                pricingBilling === '6month' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
+              }`}
+            >
+              6 Months
+            </button>
+            <button
+              onClick={() => setPricingBilling('annual')}
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                pricingBilling === 'annual' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
+              }`}
+            >
+              Annual
+              <span className="bg-brand text-white text-xs font-black px-2 py-0.5 rounded-full">Best deal</span>
+            </button>
+          </div>
+          </div>
+        </div>
+
         <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
-          {[
-            {
-              name: 'Free',
-              price: '₦0',
-              period: 'forever',
-              desc: 'Get found online today',
-              features: ['Business profile', 'TrustScore', 'Basic discovery listing', 'Customer inbox', 'Shop (10 listings)'],
-              highlight: false,
-              cta: 'Start Free',
-              ctaLink: '/signup',
-            },
-            {
-              name: 'Growth',
-              price: '₦8,250',
-              period: '/mo equiv',
-              desc: 'For businesses ready to grow',
-              features: ['Everything in Free', 'Unlimited Shop', 'Bookings', 'CRM', 'Invoices'],
-              highlight: true,
-              cta: 'Start Growth',
-              ctaLink: '/signup',
-            },
-            {
-              name: 'Pro',
-              price: '₦20,800',
-              period: '/mo equiv',
-              desc: 'For businesses that dominate',
-              features: ['Everything in Growth', 'Analytics', 'Priority support', 'Agency consultation'],
-              highlight: false,
-              cta: 'Start Pro',
-              ctaLink: '/signup',
-            },
-          ].map((plan, i) => (
+          {PRICING_PLANS.map((plan, i) => {
+            const monthlyNgn = monthlyEquivNgn(plan.key, pricingBilling)
+            const isFree = PLAN_PRICES_NGN[plan.key][pricingBilling] === 0
+            return (
             <FadeUp key={plan.name} delay={i * 150}>
               <div className={`rounded-2xl p-6 sm:p-7 border relative flex flex-col transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] ${
                 plan.highlight
@@ -442,8 +479,17 @@ export default function LandingPage() {
                 )}
                 <p className="text-xs font-black uppercase tracking-widest text-inkFaint mb-3">{plan.name}</p>
                 <div className="mb-1">
-                  <span className="text-2xl sm:text-3xl font-black">{plan.price}</span>
-                  <span className="text-inkFaint text-xs ml-1">{plan.period}</span>
+                  {isFree ? (
+                    <>
+                      <span className="text-2xl sm:text-3xl font-black">₦0</span>
+                      <span className="text-inkFaint text-xs ml-1">forever</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl sm:text-3xl font-black">₦{monthlyNgn.toLocaleString()}</span>
+                      <span className="text-inkFaint text-xs ml-1">{pricingBilling === 'monthly' ? '/mo' : '/mo equiv'}</span>
+                    </>
+                  )}
                 </div>
                 <p className="text-inkFaint text-sm mb-5">{plan.desc}</p>
                 <div className="space-y-2.5 mb-6 flex-1">
@@ -467,7 +513,8 @@ export default function LandingPage() {
                 </Link>
               </div>
             </FadeUp>
-          ))}
+            )
+          })}
         </div>
       </section>
 

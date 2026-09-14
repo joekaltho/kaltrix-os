@@ -104,9 +104,10 @@ export default function TermsPage() {
             your business information, logo, and description on the platform.
           </p>
           <p>
-            The <strong className="text-ink">TrustScore</strong> is calculated automatically by our AI engine
-            based on the completeness and quality of your business profile. It is a platform metric and does not
-            constitute a guarantee, endorsement, or certification of your business by {COMPANY}.
+            The <strong className="text-ink">TrustScore</strong> is calculated automatically from verified
+            information, platform activity (reviews, bookings, invoices), and profile completeness. It is a
+            platform metric and does not constitute a guarantee, endorsement, or certification of your
+            business by {COMPANY}.
           </p>
           <p>
             You are solely responsible for the accuracy of your business information. Providing false or
@@ -120,7 +121,7 @@ export default function TermsPage() {
 
         <Section title="5. Subscriptions and Payments">
           <p>
-            {PRODUCT} offers paid subscription plans (Growth and Pro) billed on a 6-month or annual basis.
+            {PRODUCT} offers paid subscription plans (Growth and Pro) billed monthly, every 6 months, or annually.
             Payments are processed securely through Paystack. By subscribing, you authorize us to charge
             your selected payment method for the plan amount.
           </p>

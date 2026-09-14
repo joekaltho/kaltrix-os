@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { isValidPlanAmount } from '@/lib/plans'
+import { isValidPlanAmount, type BillingPeriod } from '@/lib/plans'
 
 // Paystack sends: charge.success and others. We only act on charge.success.
 interface PaystackChargeEvent {
@@ -13,7 +13,7 @@ interface PaystackChargeEvent {
     metadata?: {
       business_id?: string
       plan?: string
-      billing?: '6month' | 'annual'
+      billing?: BillingPeriod
       custom_fields?: { variable_name: string; value: string }[]
     }
   }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   const { reference, amount, status } = event.data
   const businessId = getMetadataField(event, 'business_id')
   const plan = getMetadataField(event, 'plan')
-  const billing = (getMetadataField(event, 'billing') as '6month' | 'annual' | undefined) ?? '6month'
+  const billing = (getMetadataField(event, 'billing') as BillingPeriod | undefined) ?? '6month'
 
   if (status !== 'success' || !businessId || !plan || !reference) {
     console.error('Paystack webhook: incomplete event payload', { reference, businessId, plan, status })

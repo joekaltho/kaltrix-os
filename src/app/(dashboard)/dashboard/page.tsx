@@ -181,6 +181,7 @@ export default function DashboardPage() {
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false)
   const [userName, setUserName] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -260,6 +261,14 @@ export default function DashboardPage() {
     }
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('upgraded') === 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a redirect param on mount, not a cascading chain
+      setShowUpgradeSuccess(true)
+      router.replace('/dashboard')
+    }
+  }, [router])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -393,6 +402,22 @@ export default function DashboardPage() {
 
         {/* Page content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 max-w-4xl w-full mx-auto">
+
+          {showUpgradeSuccess && (
+            <div className="mb-6 bg-brandBg border border-brand/20 rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-ink">Plan upgraded — welcome to {plan}.</p>
+              </div>
+              <button onClick={() => setShowUpgradeSuccess(false)} className="text-inkFaint hover:text-ink text-sm flex-shrink-0">
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* No business state */}
           {!business ? (

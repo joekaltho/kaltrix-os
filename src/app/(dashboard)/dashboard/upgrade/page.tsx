@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { getSubscriptionState, SubscriptionState } from '@/lib/check-plan'
+import { PLAN_PRICES_NGN, monthlyEquivNgn, type BillingPeriod } from '@/lib/plans'
 import Link from 'next/link'
 
-type BillingCycle = '6month' | 'annual'
+type BillingCycle = BillingPeriod
 
 interface PlanConfig {
   name: string
@@ -17,14 +18,17 @@ interface PlanConfig {
   badge?: string
   features: string[]
   prices: {
+    monthly: { ngn: number; usd: number }
     '6month': { ngn: number; usd: number }
     annual: { ngn: number; usd: number }
   }
   monthlyEquiv: {
+    monthly: { ngn: number; usd: string }
     '6month': { ngn: number; usd: string }
     annual: { ngn: number; usd: string }
   }
   dailyEquiv: {
+    monthly: string
     '6month': string
     annual: string
   }
@@ -44,15 +48,23 @@ const PLANS: PlanConfig[] = [
       'Public business page',
       'Shop — up to 10 listings',
     ],
-    prices: { '6month': { ngn: 0, usd: 0 }, annual: { ngn: 0, usd: 0 } },
-    monthlyEquiv: { '6month': { ngn: 0, usd: '0' }, annual: { ngn: 0, usd: '0' } },
-    dailyEquiv: { '6month': '', annual: '' },
+    prices: {
+      monthly: { ngn: 0, usd: 0 },
+      '6month': { ngn: 0, usd: 0 },
+      annual: { ngn: 0, usd: 0 },
+    },
+    monthlyEquiv: {
+      monthly: { ngn: 0, usd: '0' },
+      '6month': { ngn: 0, usd: '0' },
+      annual: { ngn: 0, usd: '0' },
+    },
+    dailyEquiv: { monthly: '', '6month': '', annual: '' },
   },
   {
     name: 'Growth',
     planKey: 'growth',
     desc: 'Everything you need to run and grow',
-    tagline: 'Less than ₦330/day',
+    tagline: 'Less than ₦400/day',
     highlight: true,
     badge: 'Most Popular',
     features: [
@@ -62,15 +74,25 @@ const PLANS: PlanConfig[] = [
       'Customer CRM',
       'Invoice generator',
     ],
-    prices: { '6month': { ngn: 55000, usd: 33 }, annual: { ngn: 99000, usd: 60 } },
-    monthlyEquiv: { '6month': { ngn: 9167, usd: '5.50' }, annual: { ngn: 8250, usd: '5' } },
-    dailyEquiv: { '6month': 'Less than ₦306/day', annual: 'Less than ₦275/day' },
+    prices: {
+      monthly: { ngn: PLAN_PRICES_NGN.growth.monthly, usd: 7 },
+      '6month': { ngn: PLAN_PRICES_NGN.growth['6month'], usd: 33 },
+      annual: { ngn: PLAN_PRICES_NGN.growth.annual, usd: 60 },
+    },
+    // ^ NGN pulled from plans.ts (the webhook's validation source); USD is
+    // display-only (Paystack always charges NGN) so it stays a plain estimate here.
+    monthlyEquiv: {
+      monthly: { ngn: monthlyEquivNgn('growth', 'monthly'), usd: '7' },
+      '6month': { ngn: monthlyEquivNgn('growth', '6month'), usd: '5.50' },
+      annual: { ngn: monthlyEquivNgn('growth', 'annual'), usd: '5' },
+    },
+    dailyEquiv: { monthly: '', '6month': 'Less than ₦306/day', annual: 'Less than ₦275/day' },
   },
   {
     name: 'Pro',
     planKey: 'pro',
     desc: 'For businesses serious about scale',
-    tagline: 'Less than ₦600/day',
+    tagline: 'Less than ₦734/day',
     highlight: false,
     features: [
       'Everything in Growth',
@@ -79,9 +101,17 @@ const PLANS: PlanConfig[] = [
       'Custom agency consultation',
       'Early access to new features',
     ],
-    prices: { '6month': { ngn: 99000, usd: 60 }, annual: { ngn: 179000, usd: 108 } },
-    monthlyEquiv: { '6month': { ngn: 16500, usd: '10' }, annual: { ngn: 14917, usd: '9' } },
-    dailyEquiv: { '6month': 'Less than ₦550/day', annual: 'Less than ₦497/day' },
+    prices: {
+      monthly: { ngn: PLAN_PRICES_NGN.pro.monthly, usd: 13 },
+      '6month': { ngn: PLAN_PRICES_NGN.pro['6month'], usd: 60 },
+      annual: { ngn: PLAN_PRICES_NGN.pro.annual, usd: 108 },
+    },
+    monthlyEquiv: {
+      monthly: { ngn: monthlyEquivNgn('pro', 'monthly'), usd: '13' },
+      '6month': { ngn: monthlyEquivNgn('pro', '6month'), usd: '10' },
+      annual: { ngn: monthlyEquivNgn('pro', 'annual'), usd: '9' },
+    },
+    dailyEquiv: { monthly: '', '6month': 'Less than ₦550/day', annual: 'Less than ₦497/day' },
   },
 ]
 
@@ -102,6 +132,7 @@ export default function UpgradePage() {
   const [currentPlan, setCurrentPlan] = useState('free')
   const [subscription, setSubscription] = useState<SubscriptionState | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [processingPlan, setProcessingPlan] = useState('')
   const [billing, setBilling] = useState<BillingCycle>('annual')
   const [paystackLoaded, setPaystackLoaded] = useState(false)
@@ -122,21 +153,27 @@ export default function UpgradePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await getSessionUser(supabase)
-      if (!user) { router.push('/login'); return }
-      setUserEmail(user.email || '')
+      try {
+        const { data: { user } } = await getSessionUser(supabase)
+        if (!user) { router.push('/login'); return }
+        setUserEmail(user.email || '')
 
-      const { data: profile } = await supabase
-        .from('profiles').select('name').eq('id', user.id).single()
-      if (profile) setUserName(profile.name)
+        const { data: profile } = await supabase
+          .from('profiles').select('name').eq('id', user.id).single()
+        if (profile) setUserName(profile.name)
 
-      const { data: business } = await supabase
-        .from('businesses').select('id').eq('user_id', user.id).maybeSingle()
-      if (business) {
-        setBusinessId(business.id)
-        const subState = await getSubscriptionState(business.id)
-        setSubscription(subState)
-        setCurrentPlan(subState.plan)
+        const { data: business } = await supabase
+          .from('businesses').select('id').eq('user_id', user.id).maybeSingle()
+        if (business) {
+          setBusinessId(business.id)
+          const subState = await getSubscriptionState(business.id)
+          setSubscription(subState)
+          setCurrentPlan(subState.plan)
+        }
+      } catch {
+        // Same stuck-spinner risk as the main dashboard fetch (see P0/P2
+        // notes there) -- surface it instead, with a retry.
+        setLoadError('Could not load upgrade options. Check your connection and try again.')
       }
       setLoading(false)
     }
@@ -228,6 +265,28 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-ivory flex items-center justify-center font-sans px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-ink font-bold mb-1">Something went wrong</p>
+          <p className="text-inkFaint text-sm mb-6">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-ivory text-ink font-sans px-4 py-10">
       <div className="max-w-5xl mx-auto">
@@ -257,10 +316,19 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
 
         {/* Billing Toggle */}
         <div className="flex justify-center mb-10">
-          <div className="bg-white border border-border rounded-2xl p-1.5 flex items-center gap-1 shadow-card">
+          <div className="max-w-full overflow-x-auto">
+          <div className="bg-white border border-border rounded-2xl p-1.5 flex items-center gap-1 shadow-card w-max">
+            <button
+              onClick={() => setBilling('monthly')}
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                billing === 'monthly' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
+              }`}
+            >
+              Monthly
+            </button>
             <button
               onClick={() => setBilling('6month')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                 billing === '6month' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
               }`}
             >
@@ -268,13 +336,14 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
             </button>
             <button
               onClick={() => setBilling('annual')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
                 billing === 'annual' ? 'bg-ink text-ivory shadow' : 'text-inkFaint hover:text-ink'
               }`}
             >
               Annual
               <span className="bg-brand text-white text-xs font-black px-2 py-0.5 rounded-full">Best deal</span>
             </button>
+          </div>
           </div>
         </div>
 
@@ -330,7 +399,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
                     <div className="mt-3 bg-ivoryDim rounded-lg px-3 py-2 inline-block border border-border">
                       <p className="text-inkFaint text-xs">
                         Billed as <span className="text-ink font-bold">₦{price.toLocaleString()}</span>
-                        <span className="text-inkFaint"> (${usdPrice}) · {billing === 'annual' ? '1 year' : '6 months'}</span>
+                        <span className="text-inkFaint"> (${usdPrice}) · {billing === 'annual' ? '1 year' : billing === '6month' ? '6 months' : '1 month'}</span>
                       </p>
                     </div>
                     {daily && <p className="text-brand text-xs mt-2 font-semibold">{daily}</p>}
@@ -397,7 +466,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
           <h2 className="text-lg font-black mb-6">Common questions</h2>
           <div className="space-y-5">
             {[
-              { q: 'Why no monthly plan?', a: 'We want partners, not trial users. 6-month and annual plans let us give you real support and better features.' },
+              { q: 'What\'s the difference between billing periods?', a: 'Every plan includes the same features regardless of billing period — 6-month and annual commitments just cost less per month than paying monthly.' },
               { q: 'What happens when my plan expires?', a: 'Your account drops back to Free. Your data stays safe — you just lose access to premium features until you renew.' },
               { q: 'How does payment work?', a: 'We use Paystack — Nigeria\'s most trusted payment platform. Card, bank transfer, and USSD all supported.' },
               { q: "Is it worth it for a small business?", a: "One new customer from Discover pays for a month of Growth. If you're already doing digital, this just amplifies what you have." },
