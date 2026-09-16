@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-const LAST_UPDATED = 'July 1, 2026'
+const LAST_UPDATED = 'September 16, 2026'
 const COMPANY = 'Kaltrix Agency'
 const PRODUCT = 'KaltrixOS'
 const EMAIL = 'kaltrix.ng@gmail.com'
@@ -90,6 +90,10 @@ export default function PrivacyPage() {
               <p className="font-bold text-ink text-sm mb-1">Customer Messages</p>
               <p>Messages sent to businesses through the platform contact form, including sender name, phone, and message content.</p>
             </div>
+            <div className="border-t border-border pt-3">
+              <p className="font-bold text-ink text-sm mb-1">Review Integrity Data</p>
+              <p>To detect fake or coordinated reviews, we store a one-way cryptographic hash of the IP address a review was submitted from — never the raw IP. If you report a review, we also store the phone number or email you provide with that report. None of this is displayed publicly; it is used only for moderation.</p>
+            </div>
           </div>
         </Section>
 
@@ -102,6 +106,7 @@ export default function PrivacyPage() {
               'To calculate and update your TrustScore',
               'To process subscription payments via Paystack',
               'To deliver messages from customers to your inbox',
+              'To detect and prevent fake or coordinated reviews',
               'To send important account and product updates by email',
               'To improve platform features based on usage patterns',
               'To comply with applicable Nigerian law',

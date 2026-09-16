@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-const LAST_UPDATED = 'July 1, 2026'
+const LAST_UPDATED = 'September 16, 2026'
 const COMPANY = 'Kaltrix Agency'
 const PRODUCT = 'KaltrixOS'
 const EMAIL = 'kaltrix.ng@gmail.com'
@@ -54,7 +54,7 @@ export default function TermsPage() {
 
         <Section title="1. Who We Are">
           <p>
-            {PRODUCT} is a product of {COMPANY}, a business registered in the {COUNTRY}.
+            {PRODUCT} is a product of {COMPANY}, operated from the {COUNTRY}.
             We provide an online platform that helps African businesses create public profiles,
             build trust with customers, and manage operations including bookings, invoicing, and customer relationships.
           </p>

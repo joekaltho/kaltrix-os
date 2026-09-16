@@ -20,22 +20,30 @@ export interface SubscriptionRecord {
  *    creates plan='pro', status='trialing', expires_at = now() + 30 days
  *    for every new business — this is the existing 30-day Pro trial.
  *  - status 'active' (set by the Paystack webhook after a verified payment,
- *    or by the expiry sweep below) grants `plan` with no expiry check —
- *    recurring billing isn't enforced client-side yet.
+ *    or by either expiry sweep below) grants `plan` while expires_at is
+ *    still in the future. The webhook sets expires_at to the end of the
+ *    paid billing period (no auto-renewal — see Terms §5); a free-tier row
+ *    has expires_at = null and never expires this way.
  *  - status 'trialing' grants `plan` only while expires_at is still in the
  *    future.
- *  - a pg_cron job ("expire-trial-subscriptions", every 15 minutes) flips
- *    any lapsed trial to plan='free'/status='active' server-side. This
- *    function also treats a lapsed-but-not-yet-swept trial as free, so
- *    there's no window where an expired trial still reads as Pro while
- *    waiting on that cron tick.
+ *  - two pg_cron jobs, each every 15 minutes, keep the DB itself consistent
+ *    with this function so nothing outside the app (admin views, direct
+ *    queries) sees a stale plan: "expire-trial-subscriptions" flips a
+ *    lapsed trial to plan='free'/status='active', and
+ *    "expire-active-subscriptions" does the same for a lapsed paid plan.
+ *    This function treats a lapsed-but-not-yet-swept row as free either
+ *    way, so there's no window where an expired plan still reads as paid
+ *    while waiting on the next cron tick.
  *  - no row, or any other status -> free.
  */
 export function resolveEffectivePlan(row: SubscriptionRecord | null | undefined): Plan {
   if (!row || !row.plan) return 'free'
   const plan = row.plan as Plan
 
-  if (row.status === 'active') return plan
+  if (row.status === 'active') {
+    if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) return 'free'
+    return plan
+  }
   if (row.status === 'trialing') {
     return row.expires_at && new Date(row.expires_at).getTime() > Date.now() ? plan : 'free'
   }

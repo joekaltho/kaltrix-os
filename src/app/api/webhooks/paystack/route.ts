@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { isValidPlanAmount, type BillingPeriod } from '@/lib/plans'
+import { isValidPlanAmount, billingPeriodExpiresAt, type BillingPeriod } from '@/lib/plans'
 
 // Paystack sends: charge.success and others. We only act on charge.success.
 interface PaystackChargeEvent {
@@ -133,6 +133,11 @@ export async function POST(request: NextRequest) {
       plan,
       status: 'active',
       paystack_reference: reference,
+      // No automatic renewal (see Terms §5) — this billing period's end is
+      // the enforced expiry. resolveEffectivePlan() in check-plan.ts reads
+      // this for 'active' the same way it already does for 'trialing';
+      // expire_active_subscriptions() sweeps the DB-level state to match.
+      expires_at: billingPeriodExpiresAt(billing).toISOString(),
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'business_id' }

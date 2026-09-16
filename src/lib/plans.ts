@@ -36,6 +36,17 @@ export function monthlyEquivNgn(planKey: string, billing: BillingPeriod): number
   return Math.round(plan[billing] / BILLING_PERIOD_MONTHS[billing])
 }
 
+// Single source of truth for "when does a billing period paid for right now
+// end" — used by the Paystack webhook to set subscriptions.expires_at.
+// Calendar-month/year arithmetic (not fixed day counts) so e.g. a monthly
+// charge on Jan 31 rolls to the last valid day of February rather than
+// overflowing into March.
+export function billingPeriodExpiresAt(billing: BillingPeriod, from: Date = new Date()): Date {
+  const result = new Date(from)
+  result.setUTCMonth(result.getUTCMonth() + BILLING_PERIOD_MONTHS[billing])
+  return result
+}
+
 export function isValidPlanAmount(
   planKey: string,
   billing: BillingPeriod,

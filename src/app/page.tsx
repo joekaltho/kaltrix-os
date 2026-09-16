@@ -255,6 +255,9 @@ export default function LandingPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
               <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" style={{ animationDelay: '0.4s' }} />
               <span className="text-inkFaint text-xs ml-2 font-medium">KaltrixOS — Dashboard</span>
+              <span className="ml-auto text-inkFaint text-[10px] font-bold uppercase tracking-wider bg-border/50 px-2 py-0.5 rounded-full">
+                Sample data
+              </span>
             </div>
             <div className="p-4 sm:p-6 overflow-x-auto">
               <div className="min-w-[480px]">
@@ -296,10 +299,10 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
             {[
-              { number: '40M+', label: 'SMEs in Nigeria alone' },
-              { number: '<2%', label: 'Have functional websites' },
-              { number: '98%', label: 'Economically invisible' },
-              { number: '$1T+', label: 'Untapped opportunity' },
+              { number: '39M+', label: 'MSMEs in Nigeria' },
+              { number: '96.9%', label: 'of all Nigerian businesses' },
+              { number: '46.3%', label: 'share of national GDP' },
+              { number: '6.2%', label: 'share of exports' },
             ].map((stat) => (
               <div key={stat.label} className="group transition-all duration-500 hover:scale-110">
                 <p className="text-3xl sm:text-4xl font-black text-brand mb-1">{stat.number}</p>
@@ -307,6 +310,17 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+          <p className="relative text-center text-white/25 text-[11px] mt-6">
+            Source:{' '}
+            <a
+              href="https://smedan.gov.ng/downloads/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white/50"
+            >
+              SMEDAN / NBS 2021 National MSME Survey
+            </a>
+          </p>
         </div>
       </section>
 

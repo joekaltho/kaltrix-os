@@ -50,10 +50,10 @@ export default function LoginPage() {
 
           <div className="mt-12 grid grid-cols-2 gap-4">
             {[
-              { value: '40M+', label: 'SMEs in Nigeria' },
-              { value: '<2%', label: 'Have a web presence' },
-              { value: '98%', label: 'Economically invisible' },
-              { value: '$1T+', label: 'Untapped opportunity' },
+              { value: '39M+', label: 'MSMEs in Nigeria' },
+              { value: '96.9%', label: 'of all businesses' },
+              { value: '46.3%', label: 'share of GDP' },
+              { value: '6.2%', label: 'share of exports' },
             ].map((s) => (
               <div key={s.label} className="bg-white/4 border border-white/8 rounded-xl p-4">
                 <p className="text-2xl font-black text-brand mb-0.5">{s.value}</p>
@@ -61,6 +61,17 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
+          <p className="text-white/20 text-[10px] mt-3">
+            Source:{' '}
+            <a
+              href="https://smedan.gov.ng/downloads/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white/40"
+            >
+              SMEDAN / NBS 2021 National MSME Survey
+            </a>
+          </p>
         </div>
 
         <p className="text-white/20 text-xs relative z-10">© 2026 KaltrixOS · Built in Nigeria</p>
