@@ -61,6 +61,7 @@ export default function BusinessProfilePage() {
   const [messageSent, setMessageSent] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [activeTab, setActiveTab] = useState('shop')
+  const [showTrustInfo, setShowTrustInfo] = useState(false)
   const [showSharePopup, setShowSharePopup] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [messageForm, setMessageForm] = useState({
@@ -407,6 +408,13 @@ export default function BusinessProfilePage() {
                   <span className="text-xs">⚡</span>
                   TrustScore: {business.trust_score}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTrustInfo((v) => !v)}
+                  className="text-inkFaint hover:text-ink text-xs font-medium underline decoration-dotted underline-offset-2 transition"
+                >
+                  How TrustScore works
+                </button>
                 {avgRating && (
                   <div className="flex items-center gap-1 text-sm">
                     <span className="text-yellow-500">★</span>
@@ -420,6 +428,42 @@ export default function BusinessProfilePage() {
                   </a>
                 )}
               </div>
+
+              {showTrustInfo && (
+                <div className="mt-4 bg-white/70 border border-border rounded-2xl p-4 sm:p-5 text-sm max-w-2xl">
+                  <p className="font-black text-ink mb-3">How TrustScore works</p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-bold text-ink text-xs uppercase tracking-wider mb-1">Verified — up to 40 pts</p>
+                      <p className="text-inkFaint text-xs leading-relaxed">
+                        Our team&apos;s own review, plus email confirmation on the account. This is the only
+                        part of the score based on us directly checking something ourselves.
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-ink text-xs uppercase tracking-wider mb-1">Activity — up to 45 pts</p>
+                      <p className="text-inkFaint text-xs leading-relaxed">
+                        Real customer reviews, real bookings and invoices logged on KaltrixOS, and how
+                        long the business has been active on the platform.
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-ink text-xs uppercase tracking-wider mb-1">Profile details — up to 15 pts</p>
+                      <p className="text-inkFaint text-xs leading-relaxed">
+                        Information the business filled in itself — name, industry, city, phone, website,
+                        description, logo. Capped low on purpose since it&apos;s entirely self-reported.
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-inkFaint text-xs leading-relaxed mt-3 pt-3 border-t border-border">
+                    TrustScore reflects platform activity and verification status — it isn&apos;t a guarantee,
+                    endorsement, or certification of this business. The &quot;Verified&quot; badge means our
+                    team reviewed the business directly; it doesn&apos;t mean every other detail on this
+                    profile (years in business, awards, team size, and similar) has been independently
+                    checked — those are provided by the business itself.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

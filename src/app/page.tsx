@@ -36,60 +36,117 @@ const PRICING_PLANS = [
   },
 ]
 
-const features = [
+const productGroups = [
   {
-    title: 'Public Business Profile',
-    desc: 'A public business page with your TrustScore and reviews — everything a new customer needs to trust you.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-      </svg>
-    ),
+    key: 'found',
+    label: 'Get Found',
+    blurb: 'Show up where customers are already looking.',
+    items: [
+      {
+        title: 'Public Business Profile',
+        desc: 'A public page for your business — logo, description, contact info — that customers can find and share.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Discover',
+        desc: "Your business shows up in Discover — KaltrixOS's directory of listed businesses, sorted by TrustScore.",
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Shop / Listings',
+        desc: 'List what you sell or offer right on your profile, so people can browse before they even reach out.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        ),
+      },
+    ],
   },
   {
-    title: 'Bookings',
-    desc: 'Let customers book services directly. Confirm, reschedule, or cancel in one tap. No more WhatsApp chaos.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
+    key: 'trusted',
+    label: 'Get Trusted',
+    blurb: 'Give customers a real reason to trust you before they buy.',
+    items: [
+      {
+        title: 'TrustScore',
+        desc: "An evidence-based score built from verification and real activity — not something a business can just set itself.",
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Reviews',
+        desc: 'Customers leave real reviews on your profile, visible to anyone checking you out.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Complete Business Profile',
+        desc: 'The more of your profile you fill in — description, contact details, socials — the more it feeds into your TrustScore.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        ),
+      },
+    ],
   },
   {
-    title: 'Customer CRM',
-    desc: 'Keep a clean record of every customer — contact, history, notes. Know your regulars. Grow loyalty.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Invoice Generator',
-    desc: 'Create and send professional invoices in seconds. Track paid, unpaid, and overdue — automatically.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Inbox',
-    desc: 'One unified inbox for all customer messages. Never miss a lead. Reply fast, close more.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Analytics',
-    desc: 'Revenue trends, booking rates, customer growth. Real data to make real business decisions.',
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
+    key: 'run',
+    label: 'Run Your Business',
+    blurb: 'Replace the WhatsApp back-and-forth with a real system.',
+    items: [
+      {
+        title: 'Bookings',
+        desc: 'Let customers book services directly. Confirm, reschedule, or cancel in one tap.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Customer CRM',
+        desc: 'Keep a clean record of every customer — contact, history, notes. Know your regulars.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Invoices',
+        desc: 'Create and send professional invoices in seconds. Track paid, unpaid, and overdue.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Inbox',
+        desc: 'One unified inbox for every customer message that comes through your profile.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+    ],
   },
 ]
 
@@ -255,7 +312,10 @@ export default function LandingPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
               <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" style={{ animationDelay: '0.4s' }} />
               <span className="text-inkFaint text-xs ml-2 font-medium">KaltrixOS — Dashboard</span>
-              <span className="ml-auto text-inkFaint text-[10px] font-bold uppercase tracking-wider bg-border/50 px-2 py-0.5 rounded-full">
+              <span className="ml-auto inline-flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase tracking-wider bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.743 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
                 Sample data
               </span>
             </div>
@@ -290,6 +350,9 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          <p className="text-center text-inkFaint text-xs mt-3">
+            Illustrative preview — not a real business&apos;s dashboard or real platform statistics.
+          </p>
         </FadeUp>
       </section>
 
@@ -334,11 +397,12 @@ export default function LandingPage() {
                 The Problem
               </p>
               <h2 className="text-3xl sm:text-4xl font-black leading-tight mb-5 sm:mb-6">
-                Millions of businesses.<br />Zero digital presence.
+                Millions of businesses.<br />Limited digital infrastructure.
               </h2>
               <p className="text-inkMid leading-relaxed mb-6 text-sm sm:text-base">
-                Nigerian SMBs run on referrals, word of mouth, and luck. No website. No reviews.
-                No way to take bookings or send invoices without WhatsApp back-and-forths.
+                Most Nigerian SMBs still run on referrals and WhatsApp — not a real website,
+                not a place for reviews to build up, not a system for bookings or invoices.
+                A few have pieced together a presence online. Almost none have all of it in one place.
               </p>
               <div className="space-y-3">
                 {[
@@ -395,7 +459,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Product overview */}
       <section className="relative bg-ivoryDim border-y border-border overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-ivory via-transparent to-ivory opacity-50" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
@@ -403,26 +467,80 @@ export default function LandingPage() {
             <div className="text-center mb-10 sm:mb-16">
               <p className="text-brand text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
                 <span className="w-8 h-px bg-brand/30" />
-                What You Get
+                The Product
                 <span className="w-8 h-px bg-brand/30" />
               </p>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black">Everything in one place</h2>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3">What you can do with KaltrixOS today</h2>
+              <p className="text-inkMid text-sm sm:text-base max-w-xl mx-auto">
+                Everything below is live in the product right now — not a roadmap.
+              </p>
             </div>
           </FadeUp>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {features.map((f, i) => (
-              <FadeUp key={f.title} delay={i * 100}>
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-2 hover:scale-[1.02] hover:border-brand/20 group">
-                  <div className="w-9 h-9 bg-brandBg border border-brand/20 rounded-xl flex items-center justify-center mb-4 transition-all duration-500 group-hover:scale-110 group-hover:border-brand group-hover:shadow-brand">
-                    {f.icon}
-                  </div>
-                  <h3 className="font-black text-base sm:text-lg mb-2">{f.title}</h3>
-                  <p className="text-inkFaint text-sm leading-relaxed">{f.desc}</p>
+          {productGroups.map((group, gi) => (
+            <FadeUp key={group.key} delay={gi * 80}>
+              <div className="mb-10 sm:mb-14">
+                <div className="mb-5 flex items-baseline gap-3 flex-wrap">
+                  <h3 className="text-lg sm:text-xl font-black text-ink">{group.label}</h3>
+                  <p className="text-inkFaint text-xs sm:text-sm">{group.blurb}</p>
                 </div>
-              </FadeUp>
-            ))}
-          </div>
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {group.items.map((item) => (
+                    <div key={item.title} className="bg-white rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20 group">
+                      <div className="w-9 h-9 bg-brandBg border border-brand/20 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:border-brand group-hover:shadow-brand">
+                        {item.icon}
+                      </div>
+                      <h4 className="font-black text-sm sm:text-base mb-1.5">{item.title}</h4>
+                      <p className="text-inkFaint text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </FadeUp>
+          ))}
+
+          {/* Understand Your Business — Business Pulse gets real emphasis here,
+              not a generic grid card, because it's the one that ties revenue,
+              expenses, invoices, transactions, customers, and growth together
+              into a single Business Health Score. */}
+          <FadeUp delay={productGroups.length * 80}>
+            <div>
+              <div className="mb-5 flex items-baseline gap-3 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-black text-ink">Understand Your Business</h3>
+                <p className="text-inkFaint text-xs sm:text-sm">See what&apos;s actually happening, not just what you assume.</p>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20 group">
+                  <div className="w-9 h-9 bg-brandBg border border-brand/20 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:border-brand group-hover:shadow-brand">
+                    <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-black text-sm sm:text-base mb-1.5">Dashboard</h4>
+                  <p className="text-inkFaint text-xs sm:text-sm leading-relaxed">
+                    Today&apos;s bookings, unread messages, unpaid invoices, and revenue at a glance the moment you log in.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2 bg-gradient-to-br from-brandBg to-white rounded-2xl p-5 sm:p-6 border-2 border-brand/25 shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 group relative overflow-hidden">
+                  <span className="absolute top-4 right-4 text-brand text-[10px] font-black uppercase tracking-wider bg-white/70 border border-brand/20 px-2 py-0.5 rounded-full">
+                    Most Powerful
+                  </span>
+                  <div className="w-10 h-10 bg-white border border-brand/30 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:shadow-brand">
+                    <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h4l3 8 4-16 3 8h4" />
+                    </svg>
+                  </div>
+                  <h4 className="font-black text-base sm:text-lg mb-1.5">Business Pulse</h4>
+                  <p className="text-inkMid text-xs sm:text-sm leading-relaxed max-w-md">
+                    More than a chart. Business Pulse pulls together revenue, expenses, invoices, transactions,
+                    and customer growth from your real activity on KaltrixOS, and rolls it into one
+                    Business Health Score — so you know how the business is actually doing, not just how it feels.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </FadeUp>
         </div>
       </section>
 
