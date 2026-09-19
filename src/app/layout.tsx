@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/context/ThemeContext'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://kaltrixos.com'),
   title: "KaltrixOS — Africa's Business Operating System",
   description:
     'KaltrixOS gives African businesses an online presence with a TrustScore, and a complete operating system — bookings, CRM, invoicing and revenue tracking. Built for Nigerian SMEs.',

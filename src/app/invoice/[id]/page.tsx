@@ -3,8 +3,19 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import CopyLinkButton from '@/components/CopyLinkButton'
 import type { InvoiceItem } from '@/types'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
+
+// Reachable only by whoever holds the direct link (see the note below on
+// why this is a Server Component) -- never meant to be crawled or show
+// up in search results.
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 // This page is intentionally a Server Component using the service-role
 // client rather than a 'use client' page reading through the anon key.
