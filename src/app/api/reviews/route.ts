@@ -1,74 +1,90 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { createHash } from 'crypto'
+import { createServiceClient } from '@/lib/supabase/service'
+import {
+  apiError,
+  checkRateLimits,
+  getClientIp,
+  hashIp,
+  rateLimitResponse,
+  readJsonBody,
+  scopedIpHash,
+} from '@/lib/api-guard'
+import { validateReviewInput } from '@/lib/validation'
 
 // Reviews stay anonymous/frictionless by product decision (see
-// reviews_public_insert.sql) -- this route exists only so we can capture a
-// *hashed* submitter IP server-side for the review-integrity signals
-// (burst detection etc). The client can't see or set this itself: a
-// browser has no way to know its own public-facing IP as Supabase/Vercel
-// sees it, and routing through this route (vs a direct client insert)
-// means we're the ones reading it from request headers, not trusting
-// whatever a client claims.
+// reviews_public_insert.sql) -- but they are no longer written by the browser
+// straight to Supabase. This route is the ONLY write path for reviews: it
+// validates the input, rate-limits, checks the business exists, captures a
+// *hashed* submitter IP server-side for the review-integrity signals (burst
+// detection etc.) and inserts with the service-role client. Direct anon/
+// authenticated INSERT on public.reviews is revoked at the database level.
 //
-// This never stores or exposes the raw IP -- only a one-way sha256 hash,
-// used purely to notice "many reviews from the same place, fast." Set
-// REVIEW_IP_SALT in production so the hash can't be reversed by brute-
-// forcing the (small) IPv4 space; falls back to a fixed salt otherwise so
-// this still degrades gracefully rather than breaking review submission.
-function hashIp(ip: string): string {
-  const salt = process.env.REVIEW_IP_SALT || 'kaltrix-review-integrity-fallback-salt'
-  return createHash('sha256').update(salt + ip).digest('hex')
-}
-
-function getClientIp(request: Request): string | null {
-  // Vercel sets x-forwarded-for; take the first (client) hop.
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0].trim()
-  const realIp = request.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-  return null
-}
+// The raw IP is never stored or exposed -- only a one-way sha256 hash. Set
+// REVIEW_IP_SALT in production so the hash can't be reversed by brute-forcing
+// the (small) IPv4 space.
+//
+// Moderation fields are not settable here: the insert below never includes
+// them, and protect_review_integrity_fields_trigger resets them on INSERT.
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { business_id, reviewer_name, rating, comment, reviewer_phone, reviewer_email } = body
+    const parsedBody = await readJsonBody(request)
+    if (!parsedBody.ok) return parsedBody.response
 
-    if (!business_id || !reviewer_name || !comment) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
-    const numericRating = Number(rating)
-    if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
-      return NextResponse.json({ error: 'Rating must be an integer from 1 to 5' }, { status: 400 })
+    const input = validateReviewInput(parsedBody.body)
+    if (!input.ok) return apiError(input.error, 400)
+    const review = input.value
+
+    let service: ReturnType<typeof createServiceClient>
+    try {
+      service = createServiceClient()
+    } catch (err) {
+      console.error('Review submission: service client unavailable:', err instanceof Error ? err.message : err)
+      return apiError('Service temporarily unavailable — please try again shortly', 503)
     }
 
     const ip = getClientIp(request)
-    const reviewer_ip_hash = ip ? hashIp(ip) : null
+    const subject = scopedIpHash(ip, 'rl-review')
+    const limit = await checkRateLimits(service, [
+      { key: `review:ip:${subject}`, max: 10, windowSeconds: 3600 },
+      { key: `review:ip-biz:${subject}:${review.business_id}`, max: 3, windowSeconds: 86400 },
+      { key: `review:biz:${review.business_id}`, max: 100, windowSeconds: 3600 },
+    ])
+    if (limit.status !== 'ok') return rateLimitResponse(limit)
 
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const { data: business, error: businessError } = await service
+      .from('businesses')
+      .select('id')
+      .eq('id', review.business_id)
+      .maybeSingle()
+    if (businessError) {
+      console.error('Review submission: business lookup failed:', businessError.code)
+      return apiError('Could not submit review', 500)
+    }
+    if (!business) return apiError('Business not found', 404)
+
+    const { data, error } = await service
       .from('reviews')
       .insert({
-        business_id,
-        reviewer_name,
-        rating: numericRating,
-        comment,
-        reviewer_phone: reviewer_phone || null,
-        reviewer_email: reviewer_email || null,
-        reviewer_ip_hash,
+        business_id: review.business_id,
+        reviewer_name: review.reviewer_name,
+        rating: review.rating,
+        comment: review.comment,
+        reviewer_phone: review.reviewer_phone,
+        reviewer_email: review.reviewer_email,
+        reviewer_ip_hash: ip ? hashIp(ip) : null,
       })
       .select('id, reviewer_name, rating, comment, created_at, moderation_status')
       .single()
 
     if (error) {
-      console.error('Review submission failed:', error)
-      return NextResponse.json({ error: 'Could not submit review' }, { status: 500 })
+      console.error('Review submission failed:', error.code)
+      return apiError('Could not submit review', 500)
     }
 
     return NextResponse.json({ review: data })
   } catch (err) {
-    console.error('Review submission error:', err)
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    console.error('Review submission error:', err instanceof Error ? err.message : err)
+    return apiError('Invalid request', 400)
   }
 }

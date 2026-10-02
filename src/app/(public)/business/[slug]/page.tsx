@@ -84,6 +84,8 @@ export default function BusinessProfilePage() {
   const [reportDetails, setReportDetails] = useState('')
   const [sendingReport, setSendingReport] = useState(false)
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
+  const [reportError, setReportError] = useState('')
+  const [messageError, setMessageError] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,16 +131,30 @@ export default function BusinessProfilePage() {
     e.preventDefault()
     if (!business) return
     setSendingMessage(true)
-    await supabase.from('messages').insert({
-      business_id: business.id,
-      sender_name: messageForm.sender_name,
-      sender_phone: messageForm.sender_phone,
-      content: messageForm.content,
-      is_read: false,
-    })
-    setMessageSent(true)
-    setSendingMessage(false)
-    setMessageForm({ sender_name: '', sender_phone: '', content: '' })
+    setMessageError('')
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          sender_name: messageForm.sender_name,
+          sender_phone: messageForm.sender_phone,
+          content: messageForm.content,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessageError(body.error || 'Could not send your message — please try again')
+        return
+      }
+      setMessageSent(true)
+      setMessageForm({ sender_name: '', sender_phone: '', content: '' })
+    } catch {
+      setMessageError('Could not send your message — please check your connection and try again')
+    } finally {
+      setSendingMessage(false)
+    }
   }
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -176,18 +192,31 @@ export default function BusinessProfilePage() {
 
   const handleSubmitReport = async (reviewId: string) => {
     setSendingReport(true)
-    const { error } = await supabase.from('review_reports').insert({
-      review_id: reviewId,
-      business_id: business?.id,
-      reason: reportReason,
-      details: reportDetails || null,
-    })
-    setSendingReport(false)
-    if (!error) {
-      setReportedIds(new Set([...reportedIds, reviewId]))
-      setReportingReviewId(null)
-      setReportReason('fake')
-      setReportDetails('')
+    setReportError('')
+    try {
+      const res = await fetch('/api/review-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          review_id: reviewId,
+          reason: reportReason,
+          details: reportDetails || null,
+        }),
+      })
+      // 409 = this visitor already reported this review: show it as reported.
+      if (res.ok || res.status === 409) {
+        setReportedIds(new Set([...reportedIds, reviewId]))
+        setReportingReviewId(null)
+        setReportReason('fake')
+        setReportDetails('')
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setReportError(body.error || 'Could not send your report — please try again')
+      }
+    } catch {
+      setReportError('Could not send your report — please check your connection and try again')
+    } finally {
+      setSendingReport(false)
     }
   }
 
@@ -660,10 +689,11 @@ export default function BusinessProfilePage() {
                             >
                               Cancel
                             </button>
+                            {reportError && <span className="text-red-600 text-xs">{reportError}</span>}
                           </div>
                         ) : (
                           <button
-                            onClick={() => setReportingReviewId(review.id)}
+                            onClick={() => { setReportError(''); setReportingReviewId(review.id) }}
                             className="text-xs text-inkFaint hover:text-ink transition"
                           >
                             Report
@@ -694,6 +724,7 @@ export default function BusinessProfilePage() {
                       <input
                         type="text"
                         placeholder="Your name"
+                        maxLength={80}
                         value={reviewForm.reviewer_name}
                         onChange={(e) => setReviewForm({ ...reviewForm, reviewer_name: e.target.value })}
                         required
@@ -716,6 +747,7 @@ export default function BusinessProfilePage() {
                       </div>
                       <textarea
                         placeholder="Share your experience..."
+                        maxLength={2000}
                         value={reviewForm.comment}
                         onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                         rows={3}
@@ -726,6 +758,7 @@ export default function BusinessProfilePage() {
                         <input
                           type="tel"
                           placeholder="Phone (optional)"
+                          maxLength={25}
                           value={reviewForm.reviewer_phone}
                           onChange={(e) => setReviewForm({ ...reviewForm, reviewer_phone: e.target.value })}
                           className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition"
@@ -733,6 +766,7 @@ export default function BusinessProfilePage() {
                         <input
                           type="email"
                           placeholder="Email (optional)"
+                          maxLength={254}
                           value={reviewForm.reviewer_email}
                           onChange={(e) => setReviewForm({ ...reviewForm, reviewer_email: e.target.value })}
                           className="w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition"
@@ -846,9 +880,13 @@ export default function BusinessProfilePage() {
                 </div>
               ) : (
                 <form onSubmit={handleSendMessage} className="space-y-3">
+                  {messageError && (
+                    <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{messageError}</p>
+                  )}
                   <input
                     type="text"
                     placeholder="Your name"
+                    maxLength={80}
                     value={messageForm.sender_name}
                     onChange={(e) => setMessageForm({ ...messageForm, sender_name: e.target.value })}
                     required
@@ -857,12 +895,14 @@ export default function BusinessProfilePage() {
                   <input
                     type="tel"
                     placeholder="Your phone (optional)"
+                    maxLength={25}
                     value={messageForm.sender_phone}
                     onChange={(e) => setMessageForm({ ...messageForm, sender_phone: e.target.value })}
                     className="w-full bg-ivory border border-border rounded-xl px-4 py-2.5 text-sm placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition"
                   />
                   <textarea
                     placeholder="Your message..."
+                    maxLength={2000}
                     value={messageForm.content}
                     onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })}
                     rows={3}
