@@ -3,19 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
-import Link from 'next/link'
 import PremiumGuard from '@/components/PremiumGuard'
 import { useBusinessId } from '@/lib/business-context'
-
-const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
-const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
+import FormPage, { FormActions, FormSection } from '@/components/ui/FormPage'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { TextAreaField, TextField } from '@/components/ui/Field'
+import Notice from '@/components/ui/Notice'
 
 function NewBookingForm() {
   const router = useRouter()
   const supabase = createClient()
   const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     customer_name: '',
@@ -70,93 +69,43 @@ function NewBookingForm() {
       return
     }
 
-    setSuccess(true)
-    setTimeout(() => router.push('/dashboard'), 1500)
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="bg-surface rounded-2xl border border-border shadow-lift p-12">
-            <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-brand">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-black text-ink mb-2">Booking Created</h1>
-            <p className="text-inkFaint text-sm">Taking you back to your dashboard...</p>
-            <div className="mt-4 flex justify-center">
-              <span className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    router.push('/dashboard?tab=bookings&created=booking')
   }
 
   return (
-    <div className="min-h-screen bg-ivory font-sans">
-      <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
-          <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
-        </div>
-      </nav>
+    <FormPage
+      title="New booking"
+      description="Add an appointment or booking."
+      backHref="/dashboard?tab=bookings"
+      backLabel="Bookings"
+    >
+      <form id="booking-form" onSubmit={handleSubmit} className="space-y-5">
+        {error && <Notice kind="error" onDismiss={() => setError('')}>{error}</Notice>}
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black text-ink">New Booking</h1>
-          <p className="text-inkFaint text-sm mt-1">Add a new appointment or booking</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Customer Details</h2>
-            <div>
-              <label className={labelClass}>Customer Name *</label>
-              <input type="text" name="customer_name" value={form.customer_name} onChange={handleChange} required placeholder="e.g. Amina Bello" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Customer Phone</label>
-              <input type="tel" name="customer_phone" value={form.customer_phone} onChange={handleChange} placeholder="08012345678" className={inputClass} />
-            </div>
+        <FormSection title="Customer">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Customer name" name="customer_name" value={form.customer_name} onChange={handleChange} required placeholder="e.g. Amina Bello" />
+            <TextField label="Phone" optional type="tel" name="customer_phone" value={form.customer_phone} onChange={handleChange} placeholder="08012345678" />
           </div>
+        </FormSection>
 
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Booking Details</h2>
-            <div>
-              <label className={labelClass}>Service *</label>
-              <input type="text" name="service_description" value={form.service_description} onChange={handleChange} required placeholder="e.g. Haircut, Consultation, Delivery" className={inputClass} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Date *</label>
-                <input type="date" name="booking_date" value={form.booking_date} onChange={handleChange} required className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Time *</label>
-                <input type="time" name="booking_time" value={form.booking_time} onChange={handleChange} required className={inputClass} />
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Notes</label>
-              <textarea name="notes" value={form.notes} onChange={handleChange} rows={3} placeholder="Any special requests..." className={inputClass + ' resize-none'} />
-            </div>
+        <FormSection title="Booking">
+          <TextField label="Service" name="service_description" value={form.service_description} onChange={handleChange} required placeholder="e.g. Haircut, Consultation, Delivery" />
+          <div className="grid grid-cols-2 gap-4">
+            <TextField label="Date" type="date" name="booking_date" value={form.booking_date} onChange={handleChange} required />
+            <TextField label="Time" type="time" name="booking_time" value={form.booking_time} onChange={handleChange} required />
           </div>
+          <TextAreaField label="Notes" optional name="notes" value={form.notes} onChange={handleChange} rows={3} placeholder="Any special requests" />
+        </FormSection>
+      </form>
 
-          <button type="submit" disabled={loading} className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2">
-            {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating booking...</>
-            ) : 'Create Booking'}
-          </button>
-        </form>
-      </div>
-    </div>
+      <FormActions>
+        <ButtonLink href="/dashboard?tab=bookings" variant="ghost">Cancel</ButtonLink>
+        <Button type="submit" form="booking-form" variant="primary" loading={loading}>
+          {loading ? 'Creating…' : 'Create booking'}
+        </Button>
+      </FormActions>
+    </FormPage>
   )
 }
 

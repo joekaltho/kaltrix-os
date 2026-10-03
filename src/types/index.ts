@@ -16,6 +16,10 @@ export interface Business {
   city: string
   phone: string
   website_url?: string
+  // Public contact details (see 20261003000100 migration). Optional: phone
+  // stays the only required contact method.
+  email?: string | null
+  address?: string | null
   description?: string
   logo_url?: string
   trust_score: number
@@ -29,6 +33,15 @@ export interface Business {
   // invoice view (see /invoice/[id]) -- e.g. bank transfer details or a
   // mobile money handle. Never fabricated; empty until the business sets it.
   payment_instructions?: string | null
+}
+
+// Owner-only bank details for invoices. Lives in its own table (RLS: owner
+// only) rather than on `businesses`, which every signed-in user can read.
+export interface BusinessPaymentDetails {
+  business_id: string
+  bank_name: string
+  account_name: string
+  account_number: string
 }
 
 export interface Customer {

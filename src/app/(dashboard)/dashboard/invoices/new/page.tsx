@@ -1,69 +1,80 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { InvoiceItem } from '@/types'
 import PremiumGuard from '@/components/PremiumGuard'
 import { useBusinessId } from '@/lib/business-context'
+import FormPage, { FormActions, FormSection } from '@/components/ui/FormPage'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { TextField } from '@/components/ui/Field'
+import Notice from '@/components/ui/Notice'
+import { formatNaira } from '@/lib/format'
+import { hasBankDetails, hasPaymentInfo, type BankFields } from '@/lib/payment'
 
-const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
-const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
+type PaymentState = { loaded: boolean; bank: BankFields | null; instructions: string }
 
 function NewInvoiceForm() {
   const router = useRouter()
   const supabase = createClient()
   const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [items, setItems] = useState<InvoiceItem[]>([
-    { name: '', quantity: 1, price: 0 }
-  ])
-  const [form, setForm] = useState({
-    customer_name: '',
-    customer_phone: '',
-    due_date: '',
-  })
+  const [items, setItems] = useState<InvoiceItem[]>([{ name: '', quantity: 1, price: 0 }])
+  const [form, setForm] = useState({ customer_name: '', customer_phone: '', due_date: '' })
+  const [payment, setPayment] = useState<PaymentState>({ loaded: false, bank: null, instructions: '' })
+
+  // Is the business's payment info set up? Drives the one-line summary / nudge
+  // above the submit bar. Never blocks creating the invoice.
+  useEffect(() => {
+    if (!businessId) return
+    const load = async () => {
+      const [{ data: bank }, { data: biz }] = await Promise.all([
+        supabase.from('business_payment_details').select('bank_name, account_name, account_number').eq('business_id', businessId).maybeSingle(),
+        supabase.from('businesses').select('payment_instructions').eq('id', businessId).maybeSingle(),
+      ])
+      setPayment({ loaded: true, bank: bank ?? null, instructions: biz?.payment_instructions ?? '' })
+    }
+    load()
+  }, [businessId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    const updated = [...items]
-    updated[index] = { ...updated[index], [field]: value }
-    setItems(updated)
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
   }
 
-  const addItem = () => {
-    setItems([...items, { name: '', quantity: 1, price: 0 }])
-  }
-
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index))
-  }
+  const addItem = () => setItems((prev) => [...prev, { name: '', quantity: 1, price: 0 }])
+  const removeItem = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index))
 
   const total = items.reduce((sum, item) => sum + item.quantity * item.price, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
     if (!businessId) {
       setError('No business found')
-      setLoading(false)
       return
     }
+    if (total <= 0) {
+      setError('Add at least one item with a price greater than ₦0.')
+      return
+    }
+
+    setLoading(true)
 
     // Free now (cached session read, not a network call) -- kept as the
     // same defensive "session vanished mid-form" guard the original had.
     const { data: { user } } = await getSessionUser(supabase)
     if (!user) { router.push('/login'); return }
 
-    const { error: insertError } = await supabase
+    const { data: created, error: insertError } = await supabase
       .from('invoices')
       .insert({
         business_id: businessId,
@@ -74,6 +85,8 @@ function NewInvoiceForm() {
         total: total,
         status: 'unpaid',
       })
+      .select('id')
+      .single()
 
     if (insertError) {
       setError(insertError.message)
@@ -81,174 +94,121 @@ function NewInvoiceForm() {
       return
     }
 
-    setSuccess(true)
-    setTimeout(() => router.push('/dashboard'), 1500)
+    // Straight back to the list with a "Copy link" prompt: the next thing
+    // anyone does with a new invoice is send it.
+    router.push(`/dashboard?tab=invoices&created=invoice&id=${created?.id ?? ''}`)
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="bg-surface rounded-2xl border border-border shadow-lift p-12">
-            <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-brand">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-black text-ink mb-2">Invoice Created</h1>
-            <p className="text-inkFaint text-sm">Taking you back to your dashboard...</p>
-            <div className="mt-4 flex justify-center">
-              <span className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const bank = payment.bank
+  const paymentReady = hasPaymentInfo(bank, payment.instructions)
 
   return (
-    <div className="min-h-screen bg-ivory font-sans">
-      <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
-          <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
-        </div>
-      </nav>
+    <FormPage
+      title="New invoice"
+      description="Add the customer and what you're charging. You'll get a link to send them."
+      backHref="/dashboard?tab=invoices"
+      backLabel="Invoices"
+    >
+      <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
+        {error && <Notice kind="error" onDismiss={() => setError('')}>{error}</Notice>}
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black text-ink">New Invoice</h1>
-          <p className="text-inkFaint text-sm mt-1">Create an invoice for your customer</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Customer Details */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Customer Details</h2>
-            <div>
-              <label className={labelClass}>Customer Name *</label>
-              <input
-                type="text"
-                name="customer_name"
-                value={form.customer_name}
-                onChange={handleChange}
-                required
-                placeholder="e.g. Amina Bello"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Customer Phone</label>
-              <input
-                type="tel"
-                name="customer_phone"
-                value={form.customer_phone}
-                onChange={handleChange}
-                placeholder="e.g. 08012345678"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Due Date</label>
-              <input
-                type="date"
-                name="due_date"
-                value={form.due_date}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
+        <FormSection title="Customer">
+          <TextField label="Customer name" name="customer_name" value={form.customer_name} onChange={handleChange} required placeholder="e.g. Amina Bello" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Phone" optional type="tel" name="customer_phone" value={form.customer_phone} onChange={handleChange} placeholder="08012345678" />
+            <TextField label="Due date" optional type="date" name="due_date" value={form.due_date} onChange={handleChange} />
           </div>
+        </FormSection>
 
-          {/* Items */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Invoice Items</h2>
-
-            {items.map((item, index) => (
-              <div key={index} className="space-y-3 pb-4 border-b border-border last:border-0 last:pb-0">
+        <FormSection title="Items">
+          {items.map((item, index) => (
+            <div key={index} className="space-y-3 border-b border-border pb-4 last:border-0 last:pb-0">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-inkFaint">Item {index + 1}</p>
+                {items.length > 1 && (
+                  <Button size="sm" variant="danger" onClick={() => removeItem(index)} aria-label={`Remove item ${index + 1}`}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <TextField
+                label="Description"
+                value={item.name}
+                onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                required
+                placeholder="e.g. Haircut, Web design, Delivery"
+              />
+              <div className="grid grid-cols-3 gap-3">
+                <TextField
+                  label="Qty"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  value={item.quantity || ''}
+                  onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value) || 0)}
+                  required
+                />
+                <TextField
+                  label="Price (₦)"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={item.price || ''}
+                  onChange={(e) => handleItemChange(index, 'price', Number(e.target.value) || 0)}
+                  placeholder="0"
+                  required
+                />
                 <div>
-                  <label className={labelClass}>Item Name *</label>
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                    required
-                    placeholder="e.g. Haircut, Web Design, Delivery"
-                    className={inputClass}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Quantity</label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
-                      min="1"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Price (₦)</label>
-                    <input
-                      type="number"
-                      value={item.price}
-                      onChange={(e) => handleItemChange(index, 'price', Number(e.target.value))}
-                      min="0"
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-brand text-sm font-bold">
-                    Subtotal: ₦{(item.quantity * item.price).toLocaleString()}
+                  <p className="mb-1.5 text-sm font-medium text-ink">Amount</p>
+                  <p className="flex h-11 items-center text-sm font-semibold tabular-nums text-ink">
+                    {formatNaira(item.quantity * item.price)}
                   </p>
-                  {items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      className="text-red-600 text-sm hover:text-red-700 transition font-medium"
-                    >
-                      Remove
-                    </button>
-                  )}
                 </div>
               </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addItem}
-              className="w-full border border-dashed border-border rounded-xl py-3 text-inkFaint hover:text-ink hover:border-inkFaint transition text-sm font-medium"
-            >
-              + Add Another Item
-            </button>
-          </div>
-
-          {/* Total */}
-          <div className="bg-surface rounded-2xl p-6 border border-brand/20 shadow-card">
-            <div className="flex items-center justify-between">
-              <p className="text-inkFaint font-bold text-sm uppercase tracking-wider">Total Amount</p>
-              <p className="text-3xl font-black text-brand">₦{total.toLocaleString()}</p>
             </div>
-          </div>
+          ))}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating invoice...</>
-            ) : 'Create Invoice'}
-          </button>
-        </form>
-      </div>
-    </div>
+          <Button variant="secondary" full onClick={addItem}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Add another item
+          </Button>
+        </FormSection>
+
+        {/* What the customer will be told about paying: one quiet line, or a nudge. */}
+        {payment.loaded && (
+          paymentReady ? (
+            <p className="px-1 text-xs text-inkFaint">
+              Payment information shown on this invoice:{' '}
+              <span className="font-medium text-inkMid">
+                {hasBankDetails(bank) ? `${bank.bank_name} · ${bank.account_number}` : 'your payment instructions'}
+              </span>
+              .{' '}
+              <Link href="/dashboard/profile#payment" className="font-medium text-brandText hover:underline">Edit</Link>
+            </p>
+          ) : (
+            <Notice
+              kind="warn"
+              action={<ButtonLink href="/dashboard/profile#payment" size="sm" variant="secondary">Add details</ButtonLink>}
+            >
+              Customers won&apos;t see how to pay you yet. Add your bank details once and they appear on every invoice.
+            </Notice>
+          )
+        )}
+      </form>
+
+      <FormActions>
+        <div className="mr-auto">
+          <p className="text-xs text-inkFaint">Total</p>
+          <p className="text-lg font-semibold leading-tight tabular-nums">{formatNaira(total)}</p>
+        </div>
+        <ButtonLink href="/dashboard?tab=invoices" variant="ghost">Cancel</ButtonLink>
+        <Button type="submit" form="invoice-form" variant="primary" loading={loading}>
+          {loading ? 'Creating…' : 'Create invoice'}
+        </Button>
+      </FormActions>
+    </FormPage>
   )
 }
 

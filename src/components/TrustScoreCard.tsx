@@ -10,7 +10,7 @@ const toneClass: Record<'high' | 'medium' | 'low', string> = {
 
 // What the business owner can actually do about each not-yet-earned signal.
 // Only ever shown for signals that exist in this list — never invented.
-const IMPROVE_ACTIONS: Record<string, string> = {
+export const IMPROVE_ACTIONS: Record<string, string> = {
   admin_verified: 'Reach out for business verification',
   email_verified: 'Confirm your email address',
   reviews: 'Ask happy customers to leave a review',

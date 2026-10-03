@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Clock, Globe, Mail, MapPin, Phone } from 'lucide-react'
 
 interface Business {
   id: string
@@ -30,6 +31,46 @@ interface Business {
     facebook?: string
     linkedin?: string
   }
+}
+
+function ContactRow({
+  icon: Icon,
+  label,
+  value,
+  href,
+  external,
+  compact,
+}: {
+  icon: typeof Phone
+  label?: string
+  value: string
+  href?: string
+  external?: boolean
+  compact?: boolean
+}) {
+  const body = (
+    <>
+      <span className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} shrink-0 bg-brandBg rounded-lg flex items-center justify-center text-brandText`}>
+        <Icon className={compact ? 'w-4 h-4' : 'w-[18px] h-[18px]'} aria-hidden />
+      </span>
+      <span className="min-w-0">
+        {label && <span className="block text-xs text-inkFaint font-medium">{label}</span>}
+        <span className={`block break-words ${compact ? 'text-sm font-medium' : 'font-semibold'}`}>{value}</span>
+      </span>
+    </>
+  )
+  const box = `flex items-center gap-3 ${compact ? 'p-2' : 'p-3'} bg-ivory rounded-xl border border-border`
+  return href ? (
+    <a
+      href={href}
+      {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+      className={`${box} transition hover:border-brandDim`}
+    >
+      {body}
+    </a>
+  ) : (
+    <div className={box}>{body}</div>
+  )
 }
 
 interface Review {
@@ -93,7 +134,11 @@ export default function BusinessProfilePage() {
       try {
         const { data: businessData } = await supabase
           .from('businesses')
-          .select('*')
+          // Explicit columns: since the Oct 2 column lockdown, anon can't read
+          // user_id / trust_signals / etc., so select('*') failed with
+          // "permission denied" and logged-out visitors saw "not found".
+          // Only the public fields this page renders (never payment_instructions).
+          .select('id, business_name, industry, city, phone, email, website_url, address, description, logo_url, trust_score, is_verified, slug')
           .eq('slug', params.slug)
           .single()
 
@@ -790,41 +835,14 @@ export default function BusinessProfilePage() {
             {activeTab === 'contact' && (
               <div className="bg-surface rounded-2xl p-6 border border-border shadow-card">
                 <h3 className="font-black mb-4">Contact Information</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-ivory rounded-xl border border-border">
-                    <div className="w-10 h-10 bg-brandBg rounded-lg flex items-center justify-center text-brand font-black text-sm">📞</div>
-                    <div>
-                      <p className="text-xs text-inkFaint font-medium">Phone</p>
-                      <p className="font-bold">{business.phone}</p>
-                    </div>
-                  </div>
-                  {business.email && (
-                    <div className="flex items-center gap-3 p-3 bg-ivory rounded-xl border border-border">
-                      <div className="w-10 h-10 bg-brandBg rounded-lg flex items-center justify-center text-brand font-black text-sm">✉️</div>
-                      <div>
-                        <p className="text-xs text-inkFaint font-medium">Email</p>
-                        <p className="font-bold">{business.email}</p>
-                      </div>
-                    </div>
+                <div className="space-y-3">
+                  <ContactRow icon={Phone} label="Phone" href={`tel:${business.phone}`} value={business.phone} />
+                  {business.email && <ContactRow icon={Mail} label="Email" href={`mailto:${business.email}`} value={business.email} />}
+                  {business.website_url && (
+                    <ContactRow icon={Globe} label="Website" href={business.website_url} external value={business.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')} />
                   )}
-                  {business.address && (
-                    <div className="flex items-center gap-3 p-3 bg-ivory rounded-xl border border-border">
-                      <div className="w-10 h-10 bg-brandBg rounded-lg flex items-center justify-center text-brand font-black text-sm">📍</div>
-                      <div>
-                        <p className="text-xs text-inkFaint font-medium">Address</p>
-                        <p className="font-bold">{business.address}</p>
-                      </div>
-                    </div>
-                  )}
-                  {business.hours && (
-                    <div className="flex items-center gap-3 p-3 bg-ivory rounded-xl border border-border">
-                      <div className="w-10 h-10 bg-brandBg rounded-lg flex items-center justify-center text-brand font-black text-sm">🕐</div>
-                      <div>
-                        <p className="text-xs text-inkFaint font-medium">Business Hours</p>
-                        <p className="font-bold">{business.hours}</p>
-                      </div>
-                    </div>
-                  )}
+                  {business.address && <ContactRow icon={MapPin} label="Address" value={business.address} />}
+                  {business.hours && <ContactRow icon={Clock} label="Business hours" value={business.hours} />}
                   {business.social_media && Object.keys(business.social_media).length > 0 && (
                     <div className="p-3 bg-ivory rounded-xl border border-border">
                       <p className="text-xs text-inkFaint font-medium mb-2">Social Media</p>
@@ -854,18 +872,13 @@ export default function BusinessProfilePage() {
             <div className="bg-surface rounded-2xl p-6 border border-border shadow-card sticky top-24">
               <h3 className="font-black mb-4">Contact Business</h3>
               
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-3 p-2 bg-ivory rounded-xl border border-border">
-                  <div className="w-8 h-8 bg-brandBg rounded-lg flex items-center justify-center text-brand text-xs font-black">📞</div>
-                  <span className="text-sm font-medium">{business.phone}</span>
-                </div>
+              <div className="space-y-2 mb-6">
+                <ContactRow compact icon={Phone} href={`tel:${business.phone}`} value={business.phone} />
+                {business.email && <ContactRow compact icon={Mail} href={`mailto:${business.email}`} value={business.email} />}
                 {business.website_url && (
-                  <a href={business.website_url} target="_blank" rel="noreferrer" 
-                    className="flex items-center gap-3 p-2 bg-ivory rounded-xl border border-border hover:border-brand transition group">
-                    <div className="w-8 h-8 bg-brandBg rounded-lg flex items-center justify-center text-brand text-xs font-black">🌐</div>
-                    <span className="text-sm text-brand group-hover:underline font-medium">Visit Website</span>
-                  </a>
+                  <ContactRow compact icon={Globe} href={business.website_url} external value="Visit website" />
                 )}
+                {business.address && <ContactRow compact icon={MapPin} value={business.address} />}
               </div>
 
               {messageSent ? (
