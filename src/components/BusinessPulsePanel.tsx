@@ -85,7 +85,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
   }
 
   if (errorMsg) {
-    return <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 text-sm">{errorMsg}</div>
+    return <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-4 text-sm">{errorMsg}</div>
   }
 
   if (!pulse) return null
@@ -195,7 +195,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Stat label="Total invoices" value={pulse.invoices.total} />
               <Stat label="Paid" value={pulse.invoices.paid} color="text-brand" />
-              <Stat label="Outstanding" value={pulse.invoices.outstanding_count} color={pulse.invoices.outstanding_count > 0 ? 'text-red-500' : undefined} />
+              <Stat label="Outstanding" value={pulse.invoices.outstanding_count} color={pulse.invoices.outstanding_count > 0 ? 'text-danger' : undefined} />
               <Stat label="Outstanding amount" value={formatNaira(pulse.invoices.outstanding_amount)} />
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
                 <Stat label="Confirmed" value={pulse.bookings.confirmed} color="text-brand" />
                 <Stat label="Completed" value={pulse.bookings.completed} />
                 <Stat label="Pending" value={pulse.bookings.pending} />
-                <Stat label="Cancelled" value={pulse.bookings.cancelled} color={pulse.bookings.cancelled > 0 ? 'text-red-500' : undefined} />
+                <Stat label="Cancelled" value={pulse.bookings.cancelled} color={pulse.bookings.cancelled > 0 ? 'text-danger' : undefined} />
               </div>
             </div>
           )}
@@ -230,7 +230,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
           <div className="bg-surface rounded-2xl p-5 border border-border shadow-card">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-inkMid uppercase tracking-wider">Recent expenses</p>
-              <button onClick={() => setShowAddExpense(true)} className="text-brand text-xs font-bold hover:underline">
+              <button onClick={() => setShowAddExpense(true)} className="text-brandText text-xs font-bold hover:underline">
                 + Add expense
               </button>
             </div>
@@ -247,7 +247,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-xs text-inkFaint">{new Date(exp.expense_date).toLocaleDateString()}</span>
                       <span className="text-sm font-black">{formatNaira(exp.amount)}</span>
-                      <button onClick={() => handleDeleteExpense(exp.id)} className="text-inkFaint hover:text-red-500 transition">
+                      <button onClick={() => handleDeleteExpense(exp.id)} className="text-inkFaint hover:text-danger transition">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -292,7 +292,7 @@ function MetricCard({
     ? change.direction === 'up'
       ? 'text-brand bg-brandBg'
       : change.direction === 'down'
-      ? 'text-red-500 bg-red-50'
+      ? 'text-danger bg-dangerBg'
       : 'text-inkFaint bg-ivoryDim'
     : ''
   return (
@@ -306,7 +306,7 @@ function MetricCard({
         </span>
       )}
       {action && (
-        <button onClick={action.onClick} className="block text-brand text-xs font-bold hover:underline mt-2">
+        <button onClick={action.onClick} className="block text-brandText text-xs font-bold hover:underline mt-2">
           {action.label}
         </button>
       )}
@@ -433,7 +433,7 @@ function AddExpenseModal({ businessId, onClose, onSaved }: { businessId: string;
           </button>
         </div>
 
-        {error && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-4 text-sm">{error}</div>}
+        {error && <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 mb-4 text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -17,10 +17,32 @@
   --color-brandMid:  #dcfce7;
   --color-surface:   #ffffff;
 
+  /* Logo ink. `logo` adapts to the theme; Ink/Paper are fixed for use on
+     surfaces that stay dark or light in both themes (e.g. the login panel). */
+  --color-logo:      #06231e;
+  --color-logoInk:   #06231e;
+  --color-logoPaper: #eef6f0;
+
+  /* Small-text-safe brand green (the fill green #22c55e is ~2.3:1 on white) */
+  --color-brandText: #15803d;
+
+  /* Semantic status tokens — one set so every screen themes correctly in
+     dark mode instead of hardcoding amber-50 / red-50 / blue-50. */
+  --color-warn:         #b45309;
+  --color-warnBg:       #fffbeb;
+  --color-warnBorder:   #fde68a;
+  --color-danger:       #b91c1c;
+  --color-dangerBg:     #fef2f2;
+  --color-dangerBorder: #fecaca;
+  --color-info:         #1d4ed8;
+  --color-infoBg:       #eff6ff;
+  --color-infoBorder:   #bfdbfe;
+
   --shadow-card:    0 1px 3px 0 rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.04);
   --shadow-lift:    0 4px 24px 0 rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
   --shadow-brand:   0 4px 20px 0 rgba(34,197,94,0.22);
   --shadow-brandLg: 0 8px 32px 0 rgba(34,197,94,0.28);
+  --shadow-modal:   0 16px 48px 0 rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05);
 
   --font-family-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
   --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
@@ -42,6 +64,20 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   ::selection { background: var(--color-brandMid); color: var(--color-ink); }
+
+  /* Keyboard focus was only styled on inputs; buttons and links had none. */
+  :where(a, button, summary, [role='button']):focus-visible {
+    outline: 2px solid var(--color-brandDim);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer utilities {
@@ -74,6 +110,18 @@
   --color-brandMid:  #0a2a12;
   --color-surface:   #141414;
 
+  --color-logo:      #eef6f0;
+  --color-brandText: #4ade80;
+  --color-warn:         #fbbf24;
+  --color-warnBg:       #2a1d05;
+  --color-warnBorder:   #4a3410;
+  --color-danger:       #f87171;
+  --color-dangerBg:     #2a0f0f;
+  --color-dangerBorder: #4a1d1d;
+  --color-info:         #60a5fa;
+  --color-infoBg:       #0b1a33;
+  --color-infoBorder:   #1e3a66;
+
   --shadow-card:    0 1px 3px 0 rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
   --shadow-lift:    0 4px 24px 0 rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
   --shadow-brand:   0 4px 20px 0 rgba(34,197,94,0.15);
@@ -95,3 +143,7 @@
 .dark .bg-white {
   background-color: var(--color-surface);
 }
+
+/* Native controls (scrollbars, date/time pickers, select popups) follow the theme. */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }

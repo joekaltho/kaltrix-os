@@ -39,7 +39,7 @@ export default function CopyLinkButton({
     <button
       type="button"
       onClick={handleCopy}
-      className={className || 'flex items-center gap-1.5 bg-brandBg text-brand border border-brand/20 hover:border-brand/40 px-3 py-1.5 rounded-lg text-xs font-bold transition'}
+      className={className || 'flex items-center gap-1.5 bg-brandBg text-brandText border border-brand/20 hover:border-brand/40 px-3 py-1.5 rounded-lg text-xs font-bold transition'}
     >
       {copied ? (
         <>

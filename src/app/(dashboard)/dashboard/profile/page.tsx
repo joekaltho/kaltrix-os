@@ -1,30 +1,44 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Building2, Upload } from 'lucide-react'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
-import Link from 'next/link'
 import TrustScoreCard from '@/components/TrustScoreCard'
+import PaymentInformation from '@/components/PaymentInformation'
+import FormPage, { FormActions, FormSection } from '@/components/ui/FormPage'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { SelectField, TextAreaField, TextField } from '@/components/ui/Field'
+import Notice from '@/components/ui/Notice'
+import { industries } from '@/lib/industries'
+import { validateBankFields } from '@/lib/payment'
 import type { TrustSignal } from '@/lib/trust-score'
 
-const industries = [
-  'Restaurant & Food',
-  'Fashion & Clothing',
-  'Health & Wellness',
-  'Technology',
-  'Education',
-  'Real Estate',
-  'Beauty & Salon',
-  'Logistics & Delivery',
-  'Finance & Accounting',
-  'Retail & Shopping',
-  'Entertainment',
-  'Agriculture',
-  'Construction',
-  'Other',
-]
+const MAX_LOGO_BYTES = 5 * 1024 * 1024
 
-export default function EditProfilePage() {
+type FormState = {
+  business_name: string
+  industry: string
+  city: string
+  description: string
+  logo_url: string
+  phone: string
+  email: string
+  website_url: string
+  address: string
+  bank_name: string
+  account_name: string
+  account_number: string
+  payment_instructions: string
+}
+
+const emptyForm: FormState = {
+  business_name: '', industry: '', city: '', description: '', logo_url: '',
+  phone: '', email: '', website_url: '', address: '',
+  bank_name: '', account_name: '', account_number: '', payment_instructions: '',
+}
+
+export default function BusinessSettingsPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
@@ -32,20 +46,16 @@ export default function EditProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [bankError, setBankError] = useState('')
   const [businessId, setBusinessId] = useState('')
   const [trustScore, setTrustScore] = useState(0)
   const [trustSignals, setTrustSignals] = useState<TrustSignal[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [form, setForm] = useState({
-    business_name: '',
-    industry: '',
-    city: '',
-    phone: '',
-    website_url: '',
-    description: '',
-    logo_url: '',
-    payment_instructions: '',
-  })
+  const [form, setForm] = useState<FormState>(emptyForm)
+  const [initial, setInitial] = useState<FormState>(emptyForm)
+
+  const logoPreview = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : ''), [logoFile])
+  useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview) }, [logoPreview])
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -64,56 +74,106 @@ export default function EditProfilePage() {
           setBusinessId(business.id)
           setTrustScore(business.trust_score || 0)
           setTrustSignals(business.trust_signals || [])
-          setForm({
+
+          // Owner-only table. Tolerant: a failed lookup just means "not set yet".
+          const { data: bank } = await supabase
+            .from('business_payment_details')
+            .select('bank_name, account_name, account_number')
+            .eq('business_id', business.id)
+            .maybeSingle()
+
+          const loaded: FormState = {
             business_name: business.business_name || '',
             industry: business.industry || '',
             city: business.city || '',
-            phone: business.phone || '',
-            website_url: business.website_url || '',
             description: business.description || '',
             logo_url: business.logo_url || '',
+            phone: business.phone || '',
+            email: business.email || '',
+            website_url: business.website_url || '',
+            address: business.address || '',
+            bank_name: bank?.bank_name || '',
+            account_name: bank?.account_name || '',
+            account_number: bank?.account_number || '',
             payment_instructions: business.payment_instructions || '',
-          })
+          }
+          setForm(loaded)
+          setInitial(loaded)
         }
       } catch {
-        setLoadError('Could not load your profile. Check your connection and try again.')
+        setLoadError('Could not load your settings. Check your connection and try again.')
       }
       setLoading(false)
     }
     fetchBusiness()
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+  // Deep links like /dashboard/profile#payment (from the setup checklist):
+  // the target only exists after the data has loaded, so scroll once it does.
+  useEffect(() => {
+    if (!loading && window.location.hash) {
+      document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' })
+    }
+  }, [loading])
+
+  const set = (name: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setSaved(false)
+    setForm((f) => ({ ...f, [name]: e.target.value }))
+  }
+
+  const dirty = logoFile !== null || JSON.stringify(form) !== JSON.stringify(initial)
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > MAX_LOGO_BYTES) { setError('Logo must be under 5MB.'); return }
+    setError('')
+    setSaved(false)
+    setLogoFile(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
     setError('')
+    setBankError('')
 
+    const bankMessage = validateBankFields(form)
+    if (bankMessage) {
+      setBankError(bankMessage)
+      document.getElementById('payment')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      return
+    }
+
+    setSaving(true)
     let logo_url = form.logo_url
+    let logoFailed = false
 
     if (logoFile) {
       const { data: { user } } = await getSessionUser(supabase)
       const fileExt = logoFile.name.split('.').pop()
       const fileName = `${user?.id}-${Date.now()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('logos')
-        .upload(fileName, logoFile)
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
-          .from('logos')
-          .getPublicUrl(fileName)
-        logo_url = urlData.publicUrl
+      const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, logoFile)
+      if (uploadError) {
+        logoFailed = true
+      } else {
+        logo_url = supabase.storage.from('logos').getPublicUrl(fileName).data.publicUrl
       }
     }
 
     const { data: updated, error: updateError } = await supabase
       .from('businesses')
-      .update({ ...form, logo_url })
+      .update({
+        business_name: form.business_name,
+        industry: form.industry,
+        city: form.city,
+        phone: form.phone,
+        website_url: form.website_url,
+        description: form.description,
+        payment_instructions: form.payment_instructions,
+        email: form.email.trim() || null,
+        address: form.address.trim() || null,
+        logo_url,
+      })
       .eq('id', businessId)
       .select('trust_score, trust_signals')
       .single()
@@ -124,14 +184,37 @@ export default function EditProfilePage() {
       return
     }
 
+    // Bank details: all three set -> upsert; all cleared -> remove the row.
+    const accountNumber = form.account_number.replace(/\s+/g, '')
+    const hasBank = !!(form.bank_name.trim() && form.account_name.trim() && accountNumber)
+    const { error: bankWriteError } = hasBank
+      ? await supabase.from('business_payment_details').upsert({
+          business_id: businessId,
+          bank_name: form.bank_name.trim(),
+          account_name: form.account_name.trim(),
+          account_number: accountNumber,
+          updated_at: new Date().toISOString(),
+        })
+      : await supabase.from('business_payment_details').delete().eq('business_id', businessId)
+
     if (updated) {
       setTrustScore(updated.trust_score || 0)
       setTrustSignals(updated.trust_signals || [])
     }
 
-    setSaved(true)
+    const next = { ...form, logo_url, account_number: hasBank ? accountNumber : '' }
+    setForm(next)
+    setInitial(next)
+    setLogoFile(null)
     setSaving(false)
-    setTimeout(() => setSaved(false), 3000)
+
+    if (bankWriteError) {
+      setError(`Your profile was saved, but the payment details were not: ${bankWriteError.message}`)
+    } else if (logoFailed) {
+      setError('Your changes were saved, but the logo could not be uploaded. Try a smaller image.')
+    } else {
+      setSaved(true)
+    }
   }
 
   if (loading) {
@@ -145,166 +228,136 @@ export default function EditProfilePage() {
   if (loadError) {
     return (
       <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-          </div>
-          <p className="text-ink font-bold mb-1">Something went wrong</p>
-          <p className="text-inkFaint text-sm mb-6">{loadError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
-          >
-            Try Again
-          </button>
+        <div className="max-w-sm text-center">
+          <p className="mb-1 font-semibold text-ink">Something went wrong</p>
+          <p className="mb-6 text-sm text-inkFaint">{loadError}</p>
+          <Button variant="primary" onClick={() => window.location.reload()}>Try again</Button>
         </div>
       </div>
     )
   }
 
-  const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
-  const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
+  const logoSrc = logoPreview || form.logo_url
+  const showPreview = !!(form.payment_instructions.trim() || (form.bank_name.trim() && form.account_name.trim() && form.account_number.trim()))
 
   return (
-    <div className="min-h-screen bg-ivory font-sans">
-      <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
-          <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
-        </div>
-      </nav>
+    <FormPage
+      title="Business settings"
+      description="Keep these details up to date. They appear on your public page and on every invoice."
+    >
+      <form id="settings-form" onSubmit={handleSubmit} className="space-y-5">
+        {error && <Notice kind="error" onDismiss={() => setError('')}>{error}</Notice>}
+        {saved && <Notice kind="success" onDismiss={() => setSaved(false)}>Settings saved.</Notice>}
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black text-ink">Edit Business Profile</h1>
-          <p className="text-inkFaint text-sm mt-1">A complete profile helps customers find and understand your business</p>
-        </div>
-
-        {trustSignals.length > 0 && (
-          <div className="mb-6">
-            <TrustScoreCard score={trustScore} signals={trustSignals} />
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
-        )}
-
-        {saved && (
-          <div className="bg-brandBg border border-brand/20 text-brand rounded-xl p-4 mb-6 text-sm font-semibold flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-            Profile saved successfully
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-
-          {/* Logo */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider mb-4">Business Logo</h2>
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-xl bg-ivoryDim border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
-                {logoFile ? (
-                  <img src={URL.createObjectURL(logoFile)} alt="Logo" className="w-full h-full object-cover" />
-                ) : form.logo_url ? (
-                  <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <svg className="w-6 h-6 text-inkFaint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                )}
-              </div>
-              <div>
-                <label className="cursor-pointer inline-flex items-center gap-2 bg-ivory hover:bg-ivoryDim border border-border text-ink text-xs font-bold px-4 py-2.5 rounded-xl transition">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  {form.logo_url ? 'Change Logo' : 'Upload Logo'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-                </label>
-                <p className="text-inkFaint text-xs mt-2">PNG or JPG, max 5MB</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Basic Info */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Basic Information</h2>
-            <div>
-              <label className={labelClass}>Business Name *</label>
-              <input type="text" name="business_name" value={form.business_name} onChange={handleChange} required className={inputClass} />
+        <FormSection title="Business">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-ivoryDim text-inkFaint">
+              {logoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoSrc} alt="Business logo" className="h-full w-full object-cover" />
+              ) : (
+                <Building2 className="h-6 w-6" aria-hidden />
+              )}
             </div>
             <div>
-              <label className={labelClass}>Industry *</label>
-              <select name="industry" value={form.industry} onChange={handleChange} required className={inputClass}>
-                <option value="">Select industry</option>
-                {industries.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>City *</label>
-                <input type="text" name="city" value={form.city} onChange={handleChange} required className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Phone Number *</label>
-                <input type="tel" name="phone" value={form.phone} onChange={handleChange} required className={inputClass} />
-              </div>
+              <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-ink transition hover:bg-ivoryDim focus-within:outline focus-within:outline-2 focus-within:outline-brandDim">
+                <Upload className="h-4 w-4" aria-hidden />
+                {form.logo_url || logoFile ? 'Change logo' : 'Upload logo'}
+                <input type="file" accept="image/*" className="sr-only" onChange={handleLogoChange} />
+              </label>
+              <p className="mt-1.5 text-xs text-inkFaint">PNG or JPG, up to 5MB.</p>
             </div>
           </div>
 
-          {/* Online Presence */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Online Presence</h2>
+          <TextField label="Business name" name="business_name" value={form.business_name} onChange={set('business_name')} required />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <SelectField label="Industry" name="industry" value={form.industry} onChange={set('industry')} required>
+              <option value="">Select industry</option>
+              {industries.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
+            </SelectField>
+            <TextField label="City" name="city" value={form.city} onChange={set('city')} required />
+          </div>
+          <TextAreaField
+            label="Description"
+            optional
+            name="description"
+            value={form.description}
+            onChange={set('description')}
+            rows={4}
+            maxLength={1000}
+            placeholder="Tell customers what your business does…"
+          />
+        </FormSection>
+
+        <FormSection id="contact" title="Contact details" description="Customers see these on your public page and on invoices. Only phone is required.">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Phone number" name="phone" type="tel" value={form.phone} onChange={set('phone')} required placeholder="08012345678" />
+            <TextField label="Email" optional name="email" type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="hello@yourbusiness.com" />
+          </div>
+          <TextField label="Website" optional name="website_url" type="url" value={form.website_url} onChange={set('website_url')} placeholder="https://yourbusiness.com" />
+          <TextField label="Business address" optional name="address" value={form.address} onChange={set('address')} maxLength={300} placeholder="12 Adeola Odeku St, Victoria Island, Lagos" />
+        </FormSection>
+
+        <FormSection
+          id="payment"
+          title="Payment details"
+          description="Set this once. It appears as “Payment information” on every invoice you share."
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Bank name" optional name="bank_name" value={form.bank_name} onChange={set('bank_name')} maxLength={100} placeholder="e.g. GTBank" />
+            <TextField label="Account name" optional name="account_name" value={form.account_name} onChange={set('account_name')} maxLength={150} placeholder="Name on the account" />
+          </div>
+          <TextField
+            label="Account number"
+            optional
+            name="account_number"
+            value={form.account_number}
+            onChange={set('account_number')}
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={24}
+            placeholder="0123456789"
+            error={bankError || null}
+            hint="Digits only."
+          />
+          <TextAreaField
+            label="Payment instructions"
+            optional
+            name="payment_instructions"
+            value={form.payment_instructions}
+            onChange={set('payment_instructions')}
+            rows={3}
+            maxLength={1000}
+            placeholder="e.g. Use your name as the transfer reference. Mobile money: Opay 08012345678."
+            hint="Anything else customers should know when paying."
+          />
+
+          {showPreview && (
             <div>
-              <label className={labelClass}>Website URL</label>
-              <input type="url" name="website_url" value={form.website_url} onChange={handleChange} placeholder="https://yourbusiness.com" className={inputClass} />
+              <p className="mb-2 text-xs font-medium text-inkFaint">How it will look on invoices</p>
+              <PaymentInformation bank={form} instructions={form.payment_instructions} />
             </div>
-            <div>
-              <label className={labelClass}>Business Description</label>
-              <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="Tell customers what your business does..." className={inputClass + ' resize-none'} />
-              <p className="text-inkFaint text-xs mt-1.5">{form.description.length} characters</p>
-            </div>
-          </div>
+          )}
+        </FormSection>
 
-          {/* Invoice Payment Instructions */}
-          <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-4">
-            <h2 className="text-sm font-black text-ink uppercase tracking-wider">Invoice Payment Instructions</h2>
-            <div>
-              <label className={labelClass}>How should customers pay you?</label>
-              <textarea
-                name="payment_instructions"
-                value={form.payment_instructions}
-                onChange={handleChange}
-                rows={3}
-                placeholder="e.g. Bank transfer — GTBank, 0123456789, Your Business Name. Or: Opay — 08012345678"
-                className={inputClass + ' resize-none'}
-              />
-              <p className="text-inkFaint text-xs mt-1.5">Shown to customers on the invoice link you share with them. Leave blank to just show your phone number instead.</p>
-            </div>
-          </div>
+        {trustSignals.length > 0 && <TrustScoreCard score={trustScore} signals={trustSignals} />}
+      </form>
 
-          <button type="submit" disabled={saving} className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2">
-            {saving ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
-            ) : 'Save Changes'}
-          </button>
-
-          <div className="flex items-center justify-center gap-2 py-1">
-            <svg className="w-3.5 h-3.5 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <p className="text-inkFaint text-xs">
-              Your <span className="text-ink font-semibold">TrustScore</span> updates automatically based on verification, reviews, and activity
-            </p>
-          </div>
-
-        </form>
-      </div>
-    </div>
+      <FormActions>
+        <span className="mr-auto text-xs text-inkFaint" aria-live="polite">
+          {saving ? 'Saving…' : dirty ? 'Unsaved changes' : ''}
+        </span>
+        <ButtonLink href="/dashboard" variant="ghost">Cancel</ButtonLink>
+        <Button
+          type="submit"
+          form="settings-form"
+          variant="primary"
+          loading={saving}
+          disabled={!dirty}
+        >
+          Save changes
+        </Button>
+      </FormActions>
+    </FormPage>
   )
 }

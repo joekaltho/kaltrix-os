@@ -269,8 +269,8 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
     return (
       <div className="min-h-screen bg-ivory flex items-center justify-center font-sans px-4">
         <div className="text-center max-w-sm">
-          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-12 h-12 bg-dangerBg border border-dangerBorder rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
@@ -402,7 +402,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
                         <span className="text-inkFaint"> (${usdPrice}) · {billing === 'annual' ? '1 year' : billing === '6month' ? '6 months' : '1 month'}</span>
                       </p>
                     </div>
-                    {daily && <p className="text-brand text-xs mt-2 font-semibold">{daily}</p>}
+                    {daily && <p className="text-brandText text-xs mt-2 font-semibold">{daily}</p>}
                   </div>
                 )}
 
@@ -494,7 +494,7 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
             ].map((item) => (
               <div key={item.service} className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="font-semibold text-white text-sm">{item.service}</p>
-                <p className="text-brand text-sm mt-1">{item.price}</p>
+                <p className="text-brandText text-sm mt-1">{item.price}</p>
               </div>
             ))}
           </div>

@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import Logo from '@/components/Logo'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -72,9 +73,7 @@ export default function RegisterPage() {
         </div>
 
         <Link href="/" className="relative z-10">
-          <span className="text-xl font-black text-white tracking-tight">
-            Kaltrix<span className="text-brand">OS</span>
-          </span>
+          <Logo size="lg" tone="onDark" />
         </Link>
 
         <div className="relative z-10">
@@ -94,7 +93,7 @@ export default function RegisterPage() {
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-brand text-xs font-bold">{item.icon}</span>
+                  <span className="text-brandText text-xs font-bold">{item.icon}</span>
                 </div>
                 <p className="text-white/60 text-sm">{item.text}</p>
               </div>
@@ -111,7 +110,7 @@ export default function RegisterPage() {
 
           <div className="lg:hidden text-center mb-10">
             <Link href="/" className="text-2xl font-black text-ink">
-              Kaltrix<span className="text-brand">OS</span>
+              <Logo size="lg" />
             </Link>
           </div>
 
@@ -119,7 +118,7 @@ export default function RegisterPage() {
           <p className="text-inkFaint text-sm mb-8">Get your business online in minutes. Free forever.</p>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">
+            <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 mb-5 text-sm">
               {error}
             </div>
           )}
@@ -177,9 +176,9 @@ export default function RegisterPage() {
               />
               <span className="text-inkFaint text-xs leading-relaxed">
                 I have read and accept the{' '}
-                <Link href="/terms" className="text-brand hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Terms of Service</Link>
+                <Link href="/terms" className="text-brandText hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Terms of Service</Link>
                 {' '}and{' '}
-                <Link href="/privacy" className="text-brand hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Privacy Policy</Link>.
+                <Link href="/privacy" className="text-brandText hover:underline font-medium" onClick={(e) => e.stopPropagation()}>Privacy Policy</Link>.
               </span>
             </label>
             <button
@@ -198,7 +197,7 @@ export default function RegisterPage() {
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-inkFaint text-sm">
               Already have an account?{' '}
-              <Link href="/login" className="text-brand font-bold hover:underline">Sign in</Link>
+              <Link href="/login" className="text-brandText font-bold hover:underline">Sign in</Link>
             </p>
           </div>
 

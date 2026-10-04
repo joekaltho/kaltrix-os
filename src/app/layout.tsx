@@ -55,7 +55,10 @@ export default function RootLayout({
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+            // Light is the default. Dark only applies when the user has
+            // explicitly picked it with the toggle (stored in localStorage) --
+            // the OS preference is deliberately NOT consulted.
+            __html: `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}
         />
         <ThemeProvider>

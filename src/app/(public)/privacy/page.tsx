@@ -1,3 +1,4 @@
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 
 const LAST_UPDATED = 'September 16, 2026'
@@ -25,7 +26,7 @@ export default function PrivacyPage() {
       <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="text-base font-black text-ink tracking-tight">
-            Kaltrix<span className="text-brand">OS</span>
+            <Logo size="md" />
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link href="/terms" className="text-inkFaint hover:text-ink transition font-medium">Terms of Service</Link>
@@ -40,7 +41,7 @@ export default function PrivacyPage() {
 
         {/* Header */}
         <div className="mb-12">
-          <p className="text-brand text-xs font-black uppercase tracking-widest mb-3">Legal</p>
+          <p className="text-brandText text-xs font-black uppercase tracking-widest mb-3">Legal</p>
           <h1 className="text-3xl sm:text-4xl font-black text-ink mb-4">Privacy Policy</h1>
           <p className="text-inkFaint text-sm">
             Last updated: {LAST_UPDATED}

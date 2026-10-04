@@ -1,0 +1,16 @@
+export const industries = [
+  'Restaurant & Food',
+  'Fashion & Clothing',
+  'Health & Wellness',
+  'Technology',
+  'Education',
+  'Real Estate',
+  'Beauty & Salon',
+  'Logistics & Delivery',
+  'Finance & Accounting',
+  'Retail & Shopping',
+  'Entertainment',
+  'Agriculture',
+  'Construction',
+  'Other',
+]

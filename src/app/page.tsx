@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useState, useEffect, useRef } from 'react'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { PLAN_PRICES_NGN, monthlyEquivNgn, type BillingPeriod } from '@/lib/plans'
@@ -218,10 +219,10 @@ export default function LandingPage() {
       </div>
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-white/70 dark:bg-ink/70">
+      <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-surface/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="text-base sm:text-lg font-black tracking-tight group">
-            Kaltrix<span className="text-brand transition-all duration-300 group-hover:scale-110 inline-block">OS</span>
+            <Logo size="md" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/discover" className="hidden md:block text-sm text-inkFaint hover:text-ink transition-all duration-300 px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg hover:scale-105">
@@ -312,7 +313,7 @@ export default function LandingPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
               <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" style={{ animationDelay: '0.4s' }} />
               <span className="text-inkFaint text-xs ml-2 font-medium">KaltrixOS — Dashboard</span>
-              <span className="ml-auto inline-flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase tracking-wider bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              <span className="ml-auto inline-flex items-center gap-1 text-warn text-[10px] font-bold uppercase tracking-wider bg-warnBg border border-warnBorder px-2 py-0.5 rounded-full">
                 <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.743 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -331,7 +332,7 @@ export default function LandingPage() {
                     <div key={stat.label} className="bg-ivory rounded-xl p-3 sm:p-4 border border-border transition-all duration-300 hover:border-brand/20 hover:shadow-card hover:-translate-y-1 group">
                       <p className="text-inkFaint text-xs mb-1.5 font-medium uppercase tracking-wider">{stat.label}</p>
                       <p className="text-xl sm:text-2xl font-black text-ink">{stat.value}</p>
-                      <p className="text-brand text-xs mt-1 font-semibold transition-transform duration-300 group-hover:translate-x-0.5">{stat.sub}</p>
+                      <p className="text-brandText text-xs mt-1 font-semibold transition-transform duration-300 group-hover:translate-x-0.5">{stat.sub}</p>
                     </div>
                   ))}
                 </div>
@@ -392,7 +393,7 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2 gap-10 sm:gap-16 items-start">
           <FadeUp>
             <div>
-              <p className="text-red-500 text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+              <p className="text-danger text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="w-1 h-4 bg-red-500 rounded-full" />
                 The Problem
               </p>
@@ -412,8 +413,8 @@ export default function LandingPage() {
                   'Zero data on your own business',
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3 group transition-all duration-300 hover:translate-x-1">
-                    <div className="w-5 h-5 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
-                      <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-5 h-5 rounded-full bg-dangerBg border border-dangerBorder flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
+                      <svg className="w-3 h-3 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
@@ -426,7 +427,7 @@ export default function LandingPage() {
 
           <FadeUp delay={150}>
             <div>
-              <p className="text-brand text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+              <p className="text-brandText text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="w-1 h-4 bg-brand rounded-full" />
                 The Solution
               </p>
@@ -465,7 +466,7 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
           <FadeUp>
             <div className="text-center mb-10 sm:mb-16">
-              <p className="text-brand text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+              <p className="text-brandText text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
                 <span className="w-8 h-px bg-brand/30" />
                 The Product
                 <span className="w-8 h-px bg-brand/30" />
@@ -523,7 +524,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="sm:col-span-2 bg-gradient-to-br from-brandBg to-white rounded-2xl p-5 sm:p-6 border-2 border-brand/25 shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 group relative overflow-hidden">
-                  <span className="absolute top-4 right-4 text-brand text-[10px] font-black uppercase tracking-wider bg-white/70 border border-brand/20 px-2 py-0.5 rounded-full">
+                  <span className="absolute top-4 right-4 text-brand text-[10px] font-black uppercase tracking-wider bg-surface/70 border border-brand/20 px-2 py-0.5 rounded-full">
                     Most Powerful
                   </span>
                   <div className="w-10 h-10 bg-white border border-brand/30 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:shadow-brand">
@@ -548,7 +549,7 @@ export default function LandingPage() {
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <FadeUp>
           <div className="text-center mb-10 sm:mb-16">
-            <p className="text-brand text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+            <p className="text-brandText text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
               <span className="w-8 h-px bg-brand/30" />
               Pricing
               <span className="w-8 h-px bg-brand/30" />
@@ -684,7 +685,7 @@ export default function LandingPage() {
       <footer className="bg-ivory border-t border-border relative">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="text-center sm:text-left">
-            <span className="text-base font-black">Kaltrix<span className="text-brand">OS</span></span>
+            <Logo size="md" className="mx-auto block sm:mx-0" />
             <p className="text-inkFaint text-xs mt-0.5">Africa&apos;s Business Operating System</p>
           </div>
           <div className="flex items-center gap-5 text-sm text-inkFaint">

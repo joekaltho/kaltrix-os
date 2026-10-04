@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -66,7 +67,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-black text-ink">
-            Kaltrix<span className="text-brand">OS</span>
+            <Logo size="lg" />
           </Link>
         </div>
 
@@ -77,7 +78,7 @@ export default function ResetPasswordPage() {
               <p className="text-inkFaint text-sm leading-relaxed mb-6">
                 Please request a new password reset link.
               </p>
-              <Link href="/forgot-password" className="text-brand text-sm font-bold hover:underline">
+              <Link href="/forgot-password" className="text-brandText text-sm font-bold hover:underline">
                 Back to Forgot Password
               </Link>
             </div>
@@ -94,7 +95,7 @@ export default function ResetPasswordPage() {
               <p className="text-inkFaint text-sm mb-8">Choose a strong password for your account.</p>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">
+                <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 mb-5 text-sm">
                   {error}
                 </div>
               )}
