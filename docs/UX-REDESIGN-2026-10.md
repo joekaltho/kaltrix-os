@@ -50,3 +50,22 @@ Framework: Fitts, Hick, Zeigarnik, Jakob, Goal Gradient, Von Restorff, Miller.
   `payment_instructions` into `business_payment_details` and dropping it from the anon grant.
 - White text on the brand green is ~3.3:1 (AA wants 4.5:1 for small text). Primary buttons
   use #16a34a; switching to #15803d fixes it at the cost of a darker green.
+
+## Polish pass + new logo (Oct 4)
+- **Light is the default theme.** The pre-paint script in `layout.tsx` no longer reads the
+  OS preference; dark only applies after the user picks it with the toggle (localStorage).
+  `color-scheme` is set per theme so scrollbars/date pickers match.
+- **Theme toggle added to the dashboard** (sidebar footer + mobile top bar). It previously
+  only existed on the landing page and Discover.
+- **Dark-mode fixes:** public business page nav (was light grey), TrustScore pill, error/warn
+  boxes on auth, Listings, Pulse and Upgrade now use the semantic tokens. Small green text
+  uses `text-brandText` (AA contrast). Decorative hover-scale/glow removed on the business page.
+- **New logo.** Master artwork vectorised into `public/brand/` (stacked logo + mark, dark and
+  white), `src/components/Logo.tsx` (`<Logo/>` horizontal lockup, `<LogoMark/>`; tones auto /
+  onDark / onLight), replacing every text wordmark. App icons: `src/app/icon.svg`,
+  `apple-icon.png`, `favicon.ico` (mint tile + dark-green mark).
+  - The horizontal lockup is derived from the stacked master for nav bars; swap if you
+    commission an official one.
+  - Transactional emails (`src/lib/resend.ts`) still use the text wordmark: email clients
+    don't render inline SVG, so they need a hosted PNG of the logo.
+  - Admin (`/admin`) is untouched apart from the logo; it is still hard-coded dark.

@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 
 export default function ConfirmEmailPage() {
@@ -7,7 +8,7 @@ export default function ConfirmEmailPage() {
     <div className="min-h-screen bg-ivory font-sans flex items-center justify-center px-4">
       <div className="w-full max-w-md text-center">
         <Link href="/" className="text-xl font-black text-ink block mb-10">
-          Kaltrix<span className="text-brand">OS</span>
+          <Logo size="lg" className="mx-auto" />
         </Link>
         <div className="bg-surface rounded-2xl border border-border shadow-lift p-10">
           <div className="w-14 h-14 bg-brandBg border border-brand/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -24,7 +25,7 @@ export default function ConfirmEmailPage() {
           </Link>
           <p className="text-inkFaint text-xs">
             Didn&apos;t get it? Check your spam folder or{' '}
-            <Link href="/signup" className="text-brand hover:underline font-medium">try again</Link>
+            <Link href="/signup" className="text-brandText hover:underline font-medium">try again</Link>
           </p>
         </div>
       </div>

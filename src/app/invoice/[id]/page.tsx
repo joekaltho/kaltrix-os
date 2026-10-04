@@ -1,3 +1,4 @@
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CheckCircle2, Globe, Mail, MapPin, Phone } from 'lucide-react'
@@ -74,7 +75,7 @@ export default async function InvoiceViewPage({ params }: { params: Promise<{ id
     <div className="min-h-screen bg-ivory font-sans text-ink">
       <nav className="glass sticky top-0 z-10 flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 print:hidden">
         <Link href="/" className="text-lg font-black tracking-tight">
-          Kaltrix<span className="text-brand">OS</span>
+          <Logo size="md" />
         </Link>
         <CopyLinkButton
           url={shareUrl}
@@ -145,7 +146,7 @@ export default async function InvoiceViewPage({ params }: { params: Promise<{ id
               <p className="mt-1 font-semibold">{invoice.customer_name}</p>
               {invoice.customer_phone && <p className="text-sm text-inkMid">{invoice.customer_phone}</p>}
             </div>
-            <dl className="text-sm sm:text-right">
+            <dl className="text-sm sm:text-right [&_dt]:text-xs">
               <div className="flex gap-2 sm:justify-end">
                 <dt className="text-inkFaint">Issued</dt>
                 <dd className="font-medium">{formatDate(invoice.created_at)}</dd>

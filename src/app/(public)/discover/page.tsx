@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -107,7 +108,7 @@ export default function DiscoverPage() {
       <nav className="sticky top-0 z-50 glass border-b border-border shadow-card ">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="text-base sm:text-lg font-black tracking-tight group">
-            Kaltrix<span className="text-brand transition ">OS</span>
+            <Logo size="md" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/login" className="text-sm text-inkFaint hover:text-ink transition px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg">
@@ -191,7 +192,7 @@ export default function DiscoverPage() {
                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${
                   selectedIndustry === industry
                     ? 'bg-brand text-white border-brand shadow-lg scale-105'
-                    : 'bg-surface text-inkFaint border-border hover:border-brand hover:text-brand hover:shadow-card'
+                    : 'bg-surface text-inkFaint border-border hover:border-brand hover:text-brandText'
                 }`}
               >
                 {industry}
@@ -206,7 +207,7 @@ export default function DiscoverPage() {
             <p className="text-inkFaint text-sm">
               {loading ? 'Loading...' : (
                 <>Showing <span className="text-ink font-semibold">{filtered.length}</span> businesses
-                  {selectedIndustry !== 'All' && <> in <span className="text-brand font-semibold">{selectedIndustry}</span></>}
+                  {selectedIndustry !== 'All' && <> in <span className="text-brandText font-semibold">{selectedIndustry}</span></>}
                 </>
               )}
             </p>
@@ -278,7 +279,7 @@ export default function DiscoverPage() {
                     <div className="flex flex-col items-end gap-1.5">
                       <TrustBadge score={business.trust_score} />
                       {business.is_verified && (
-                        <span className="bg-brandBg text-brand text-xs px-2 py-0.5 rounded-full border border-brand/20 font-semibold transition">
+                        <span className="bg-brandBg text-brandText text-xs px-2 py-0.5 rounded-full border border-brand/20 font-semibold transition">
                           Verified
                         </span>
                       )}
@@ -286,7 +287,7 @@ export default function DiscoverPage() {
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="font-black text-base text-ink group-hover:text-brand transition-colors duration-300 mb-1 leading-tight">
+                    <h3 className="font-black text-base text-ink group-hover:text-brandText transition-colors duration-300 mb-1 leading-tight">
                       {business.business_name}
                     </h3>
                     <p className="text-inkFaint text-xs mb-3">
@@ -300,11 +301,11 @@ export default function DiscoverPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-border transition group-hover:border-brand/10">
-                    <span className={`text-xs flex items-center gap-1.5 font-medium transition ${business.website_url ? 'text-brand' : 'text-inkFaint'}`}>
+                    <span className={`text-xs flex items-center gap-1.5 font-medium transition ${business.website_url ? 'text-brandText' : 'text-inkFaint'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full transition ${business.website_url ? 'bg-brand' : 'bg-ivoryDeep'}`} />
                       {business.website_url ? 'Online' : 'No website'}
                     </span>
-                    <span className="text-brand text-xs font-bold transition group-hover:underline group-hover:translate-x-1 inline-flex items-center gap-1">
+                    <span className="text-brandText text-xs font-bold transition group-hover:underline group-hover:translate-x-1 inline-flex items-center gap-1">
                       View Profile
                       <svg className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />

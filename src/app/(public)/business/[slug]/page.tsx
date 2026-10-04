@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -335,8 +336,8 @@ export default function BusinessProfilePage() {
     return (
       <div className="min-h-screen bg-ivory flex items-center justify-center text-center px-6 font-sans">
         <div className="max-w-sm">
-          <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-12 h-12 bg-dangerBg border border-dangerBorder rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
@@ -344,7 +345,7 @@ export default function BusinessProfilePage() {
           <p className="text-inkFaint text-sm mb-6">{loadError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition shadow-brand text-sm"
+            className="gradient-brand text-white font-black px-6 py-3 rounded-xl transition text-sm"
           >
             Try Again
           </button>
@@ -364,7 +365,7 @@ export default function BusinessProfilePage() {
           </div>
           <h2 className="text-2xl font-black text-ink mb-2">Business not found</h2>
           <p className="text-inkFaint mb-6">This business may have been removed or moved.</p>
-          <Link href="/discover" className="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-white font-black px-6 py-3 rounded-xl transition shadow-brand">
+          <Link href="/discover" className="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-white font-black px-6 py-3 rounded-xl transition">
             Back to Discover
           </Link>
         </div>
@@ -404,7 +405,7 @@ export default function BusinessProfilePage() {
                   onClick={() => handleShareSocial(platform.action)}
                   className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-ivoryDim transition group"
                 >
-                  <span className="text-2xl group-hover:scale-110 transition">{platform.icon}</span>
+                  <span className="text-2xl transition">{platform.icon}</span>
                   <span className="text-xs text-inkFaint">{platform.label}</span>
                 </button>
               ))}
@@ -429,21 +430,21 @@ export default function BusinessProfilePage() {
       )}
 
       {/* Navigation */}
-      <nav className="border-b border-border bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <nav className="border-b border-border bg-surface/80 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <Link href="/discover" className="text-xl font-black tracking-tight">
-          Kaltrix<span className="text-brand">OS</span>
+          <Logo size="md" />
         </Link>
         <div className="flex items-center gap-3">
           <button
             onClick={handleShare}
-            className="flex items-center gap-2 bg-brandBg text-brand border border-brand/20 hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition hover:scale-105"
+            className="flex items-center gap-2 bg-brandBg text-brandText border border-brand/20 hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
             Share
           </button>
-          <Link href="/signup" className="bg-ink hover:bg-inkMid text-ivory text-sm font-bold px-4 py-2 rounded-xl transition hover:shadow-lg hover:-translate-y-0.5">
+          <Link href="/signup" className="bg-ink hover:bg-inkMid text-ivory text-sm font-bold px-4 py-2 rounded-xl transition hover:shadow-lg">
             List Your Business
           </Link>
         </div>
@@ -453,7 +454,7 @@ export default function BusinessProfilePage() {
       <div className="bg-gradient-to-b from-brandBg/30 via-surface to-ivory border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white border-2 border-border shadow-card flex items-center justify-center text-3xl font-black text-inkMid overflow-hidden flex-shrink-0 transition hover:scale-105 hover:shadow-lift">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-surface border-2 border-border shadow-card flex items-center justify-center text-3xl font-black text-inkMid overflow-hidden flex-shrink-0 transition">
               {business.logo_url ? (
                 <img src={business.logo_url} alt={business.business_name} className="w-full h-full object-cover" />
               ) : (
@@ -464,7 +465,7 @@ export default function BusinessProfilePage() {
               <div className="flex items-center gap-3 flex-wrap mb-2">
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{business.business_name}</h1>
                 {business.is_verified && (
-                  <span className="inline-flex items-center gap-1 bg-brandBg text-brand text-xs px-2.5 py-1 rounded-full border border-brand/20 font-bold">
+                  <span className="inline-flex items-center gap-1 bg-brandBg text-brandText text-xs px-2.5 py-1 rounded-full border border-brand/20 font-bold">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
@@ -476,8 +477,8 @@ export default function BusinessProfilePage() {
               <div className="flex items-center gap-4 flex-wrap">
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-bold ${
                   business.trust_score >= 70 ? 'bg-brandBg text-brand border-brand/20' :
-                  business.trust_score >= 40 ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                  'bg-red-50 text-red-600 border-red-200'
+                  business.trust_score >= 40 ? 'bg-warnBg text-warn border-warnBorder' :
+                  'bg-dangerBg text-danger border-dangerBorder'
                 }`}>
                   <span className="text-xs">⚡</span>
                   TrustScore: {business.trust_score}
@@ -497,14 +498,14 @@ export default function BusinessProfilePage() {
                   </div>
                 )}
                 {business.website_url && (
-                  <a href={business.website_url} target="_blank" rel="noreferrer" className="text-brand hover:underline text-sm font-medium">
+                  <a href={business.website_url} target="_blank" rel="noreferrer" className="text-brandText hover:underline text-sm font-medium">
                     Visit Website →
                   </a>
                 )}
               </div>
 
               {showTrustInfo && (
-                <div className="mt-4 bg-white/70 border border-border rounded-2xl p-4 sm:p-5 text-sm max-w-2xl">
+                <div className="mt-4 bg-surface/70 border border-border rounded-2xl p-4 sm:p-5 text-sm max-w-2xl">
                   <p className="font-black text-ink mb-3">How TrustScore works</p>
                   <div className="space-y-3">
                     <div>
@@ -584,7 +585,7 @@ export default function BusinessProfilePage() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {listings.map((listing) => (
-                      <div key={listing.id} className="bg-surface rounded-2xl border border-border shadow-card overflow-hidden transition hover:shadow-lift hover:-translate-y-0.5">
+                      <div key={listing.id} className="bg-surface rounded-2xl border border-border shadow-card overflow-hidden transition">
                         <div className="aspect-square bg-ivoryDim flex items-center justify-center overflow-hidden">
                           {listing.image_url ? (
                             <img src={listing.image_url} alt={listing.name} className="w-full h-full object-cover" />
@@ -594,7 +595,7 @@ export default function BusinessProfilePage() {
                         </div>
                         <div className="p-3">
                           <p className="font-bold text-sm truncate">{listing.name}</p>
-                          {!!listing.price && <p className="text-brand font-black text-sm mt-0.5">₦{listing.price.toLocaleString()}</p>}
+                          {!!listing.price && <p className="text-brandText font-black text-sm mt-0.5">₦{listing.price.toLocaleString()}</p>}
                         </div>
                       </div>
                     ))}
@@ -638,7 +639,7 @@ export default function BusinessProfilePage() {
                       <p className="text-xs text-inkFaint font-medium uppercase tracking-wider mb-2">Specialties</p>
                       <div className="flex flex-wrap gap-2">
                         {business.specialties.map((specialty, index) => (
-                          <span key={index} className="bg-brandBg text-brand px-3 py-1 rounded-full text-sm font-medium border border-brand/20">
+                          <span key={index} className="bg-brandBg text-brandText px-3 py-1 rounded-full text-sm font-medium border border-brand/20">
                             {specialty}
                           </span>
                         ))}
@@ -684,12 +685,12 @@ export default function BusinessProfilePage() {
                   </div>
                 ) : (
                   reviews.map((review) => (
-                    <div key={review.id} className="bg-surface rounded-xl p-5 border border-border shadow-card hover:shadow-lift transition">
+                    <div key={review.id} className="bg-surface rounded-xl p-5 border border-border shadow-card transition">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <p className="font-black">{review.reviewer_name}</p>
                           {review.moderation_status === 'flagged' && (
-                            <span className="bg-yellow-500/10 text-yellow-700 text-xs px-2 py-0.5 rounded-full border border-yellow-500/20 font-medium">
+                            <span className="bg-warnBg text-warn text-xs px-2 py-0.5 rounded-full border border-warnBorder font-medium">
                               Under review
                             </span>
                           )}
@@ -724,7 +725,7 @@ export default function BusinessProfilePage() {
                             <button
                               onClick={() => handleSubmitReport(review.id)}
                               disabled={sendingReport}
-                              className="text-xs font-bold text-brand hover:text-brand/80 transition disabled:opacity-50"
+                              className="text-xs font-bold text-brandText hover:text-brandText/80 transition disabled:opacity-50"
                             >
                               {sendingReport ? 'Sending...' : 'Submit'}
                             </button>
@@ -734,7 +735,7 @@ export default function BusinessProfilePage() {
                             >
                               Cancel
                             </button>
-                            {reportError && <span className="text-red-600 text-xs">{reportError}</span>}
+                            {reportError && <span className="text-danger text-xs">{reportError}</span>}
                           </div>
                         ) : (
                           <button
@@ -764,7 +765,7 @@ export default function BusinessProfilePage() {
                   ) : (
                     <form onSubmit={handleSubmitReview} className="space-y-4">
                       {reviewError && (
-                        <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{reviewError}</p>
+                        <p className="text-danger text-sm bg-dangerBg border border-dangerBorder rounded-lg px-3 py-2">{reviewError}</p>
                       )}
                       <input
                         type="text"
@@ -783,7 +784,7 @@ export default function BusinessProfilePage() {
                               key={star}
                               type="button"
                               onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                              className={`text-3xl transition hover:scale-110 ${star <= reviewForm.rating ? 'text-yellow-500' : 'text-ivoryDim hover:text-yellow-500'}`}
+                              className={`text-3xl transition ${star <= reviewForm.rating ? 'text-yellow-500' : 'text-ivoryDim hover:text-yellow-500'}`}
                             >
                               ★
                             </button>
@@ -821,7 +822,7 @@ export default function BusinessProfilePage() {
                       <button
                         type="submit"
                         disabled={sendingReview}
-                        className="w-full bg-brand hover:bg-brand/90 text-white font-black py-3 rounded-xl transition shadow-brand disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-brand hover:bg-brand/90 text-white font-black py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {sendingReview ? 'Submitting...' : 'Submit Review'}
                       </button>
@@ -848,16 +849,16 @@ export default function BusinessProfilePage() {
                       <p className="text-xs text-inkFaint font-medium mb-2">Social Media</p>
                       <div className="flex gap-3">
                         {business.social_media.instagram && (
-                          <a href={business.social_media.instagram} target="_blank" rel="noreferrer" className="text-2xl hover:scale-110 transition">📸</a>
+                          <a href={business.social_media.instagram} target="_blank" rel="noreferrer" className="text-2xl transition">📸</a>
                         )}
                         {business.social_media.twitter && (
-                          <a href={business.social_media.twitter} target="_blank" rel="noreferrer" className="text-2xl hover:scale-110 transition">🐦</a>
+                          <a href={business.social_media.twitter} target="_blank" rel="noreferrer" className="text-2xl transition">🐦</a>
                         )}
                         {business.social_media.facebook && (
-                          <a href={business.social_media.facebook} target="_blank" rel="noreferrer" className="text-2xl hover:scale-110 transition">📘</a>
+                          <a href={business.social_media.facebook} target="_blank" rel="noreferrer" className="text-2xl transition">📘</a>
                         )}
                         {business.social_media.linkedin && (
-                          <a href={business.social_media.linkedin} target="_blank" rel="noreferrer" className="text-2xl hover:scale-110 transition">🔗</a>
+                          <a href={business.social_media.linkedin} target="_blank" rel="noreferrer" className="text-2xl transition">🔗</a>
                         )}
                       </div>
                     </div>
@@ -888,13 +889,13 @@ export default function BusinessProfilePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-brand font-bold text-sm">Message sent!</p>
+                  <p className="text-brandText font-bold text-sm">Message sent!</p>
                   <p className="text-inkFaint text-xs mt-1">The business will get back to you</p>
                 </div>
               ) : (
                 <form onSubmit={handleSendMessage} className="space-y-3">
                   {messageError && (
-                    <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{messageError}</p>
+                    <p className="text-danger text-sm bg-dangerBg border border-dangerBorder rounded-lg px-3 py-2">{messageError}</p>
                   )}
                   <input
                     type="text"
@@ -925,7 +926,7 @@ export default function BusinessProfilePage() {
                   <button
                     type="submit"
                     disabled={sendingMessage}
-                    className="w-full bg-brand hover:bg-brand/90 text-white font-black py-2.5 rounded-xl transition shadow-brand text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-brand hover:bg-brand/90 text-white font-black py-2.5 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sendingMessage ? 'Sending...' : 'Send Message'}
                   </button>
@@ -939,7 +940,7 @@ export default function BusinessProfilePage() {
               </Link>
               <button
                 onClick={handleShare}
-                className="text-center text-brand text-sm hover:underline font-medium flex items-center justify-center gap-1"
+                className="text-center text-brandText text-sm hover:underline font-medium flex items-center justify-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />

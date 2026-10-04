@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
@@ -254,7 +255,7 @@ export default function AdminPage() {
       <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 bg-black/90 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="text-lg font-black">
-            Kaltrix<span className="text-green-400">OS</span>
+            <Logo size="sm" tone="onDark" />
           </Link>
           <span className="bg-green-400/10 text-green-400 text-xs px-2.5 py-1 rounded-full border border-green-400/20 font-bold">
             Admin

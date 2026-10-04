@@ -87,7 +87,7 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
             </svg>
           </div>
           <p className="text-inkFaint font-medium text-sm">No listings yet</p>
-          <Link href="/dashboard/listings/new" className="text-brand text-sm mt-2 block hover:underline font-semibold">Add your first listing</Link>
+          <Link href="/dashboard/listings/new" className="text-brandText text-sm mt-2 block hover:underline font-semibold">Add your first listing</Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -107,11 +107,11 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-ivory border border-border text-inkFaint shrink-0">Hidden</span>
                   )}
                 </div>
-                {!!listing.price && <p className="text-brand font-black text-sm mt-1">₦{listing.price.toLocaleString()}</p>}
+                {!!listing.price && <p className="text-brandText font-black text-sm mt-1">₦{listing.price.toLocaleString()}</p>}
                 {listing.description && <p className="text-inkFaint text-xs mt-1 line-clamp-2">{listing.description}</p>}
                 <div className="flex gap-2 pt-3 mt-3 border-t border-border">
                   <button onClick={() => setEditing(listing)} className="flex-1 bg-ivory hover:bg-ivoryDim text-ink text-xs font-bold px-3 py-1.5 rounded-lg transition border border-border">Edit</button>
-                  <button onClick={() => handleDelete(listing.id)} className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition border border-red-200">Delete</button>
+                  <button onClick={() => handleDelete(listing.id)} className="bg-dangerBg hover:bg-dangerBg text-danger text-xs font-bold px-3 py-1.5 rounded-lg transition border border-dangerBorder">Delete</button>
                 </div>
               </div>
             </div>
@@ -176,7 +176,7 @@ function EditListingModal({ listing, onClose, onSaved }: { listing: Listing; onC
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-4 text-sm">{error}</div>
+          <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 mb-4 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

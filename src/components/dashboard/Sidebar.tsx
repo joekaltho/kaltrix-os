@@ -1,8 +1,10 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { ExternalLink, LogOut, Menu, Settings, Sparkles, X, Zap, CreditCard } from 'lucide-react'
+import ThemeToggle from '@/components/ThemeToggle'
 import type { Business } from '@/types'
 import type { Plan, SubscriptionState } from '@/lib/check-plan'
 import { MOBILE_PRIORITY, tabHref, type NavGroup, type NavItem, type Tab } from './nav'
@@ -65,7 +67,7 @@ export function Sidebar({ business, userName, plan, subscription, activeTab, nav
   return (
     <div className="flex h-full w-full flex-col">
       <div className="shrink-0 border-b border-border px-5 py-4">
-        <span className="text-base font-black tracking-tight text-ink">Kaltrix<span className="text-brand">OS</span></span>
+        <Logo size="md" />
       </div>
 
       {business && (
@@ -144,14 +146,18 @@ export function Sidebar({ business, userName, plan, subscription, activeTab, nav
             {plan} plan{subscription?.isTrialing ? ` · trial, ${subscription.trialDaysLeft}d left` : ''}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-inkMid transition-colors hover:bg-ivoryDim hover:text-danger"
-        >
-          <LogOut className="h-4 w-4" aria-hidden />
-          Sign out
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={onSignOut}
+            aria-label="Sign out"
+            title="Sign out"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-inkMid transition-colors hover:bg-dangerBg hover:text-danger"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
       </div>
     </div>
   )

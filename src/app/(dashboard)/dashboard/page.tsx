@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import Logo from '@/components/Logo'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -14,6 +15,7 @@ import { siteOrigin } from '@/lib/format'
 import ListingsPanel from '@/components/ListingsPanel'
 import BusinessPulsePanel from '@/components/BusinessPulsePanel'
 import CopyLinkButton from '@/components/CopyLinkButton'
+import ThemeToggle from '@/components/ThemeToggle'
 import PageHeader from '@/components/ui/PageHeader'
 import Notice from '@/components/ui/Notice'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -302,10 +304,13 @@ function Dashboard() {
 
         {/* Mobile top bar: brand + plan only; navigation lives in the bottom bar */}
         <header className="md:hidden sticky top-0 z-30 glass border-b border-border px-4 h-12 flex items-center justify-between">
-          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
-          <span className="text-xs font-medium capitalize text-inkFaint">
-            {plan} plan{subscription?.isTrialing ? ` · ${subscription.trialDaysLeft}d left` : ''}
-          </span>
+          <Logo size="sm" />
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium capitalize text-inkFaint">
+              {plan} plan{subscription?.isTrialing ? ` · ${subscription.trialDaysLeft}d left` : ''}
+            </span>
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-28 md:pb-8 max-w-4xl w-full mx-auto">

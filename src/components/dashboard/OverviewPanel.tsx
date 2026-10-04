@@ -93,7 +93,8 @@ export default function OverviewPanel({ business, plan, bank, bookings, messages
     info: 'bg-infoBg text-info',
   }
 
-  const showChart = hasFeature(plan, 'analytics') && paid.length > 0
+  // A single paid invoice draws as one lonely dot, so wait for at least two points.
+  const showChart = hasFeature(plan, 'analytics') && paid.length > 1
 
   return (
     <div className="space-y-6">

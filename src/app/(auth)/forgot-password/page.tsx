@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -32,7 +33,7 @@ export default function ForgotPasswordPage() {
 
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-black text-ink">
-            Kaltrix<span className="text-brand">OS</span>
+            <Logo size="lg" />
           </Link>
         </div>
 
@@ -48,7 +49,7 @@ export default function ForgotPasswordPage() {
               <p className="text-inkFaint text-sm leading-relaxed mb-6">
                 We sent a reset link to <span className="text-ink font-semibold">{email}</span>. Click it to set a new password.
               </p>
-              <Link href="/login" className="text-brand text-sm font-bold hover:underline">
+              <Link href="/login" className="text-brandText text-sm font-bold hover:underline">
                 Back to Sign In
               </Link>
             </div>
@@ -58,7 +59,7 @@ export default function ForgotPasswordPage() {
               <p className="text-inkFaint text-sm mb-8">Enter your email and we will send you a reset link.</p>
 
               {(error || urlError) && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-3 mb-5 text-sm">
+                <div className="bg-warnBg border border-warnBorder text-warn rounded-xl p-3 mb-5 text-sm">
                   {urlError === 'expired'
                     ? 'Your reset link has expired. Please request a new one below.'
                     : urlError === 'denied'
@@ -95,7 +96,7 @@ export default function ForgotPasswordPage() {
               <div className="mt-8 pt-6 border-t border-border text-center">
                 <p className="text-inkFaint text-sm">
                   Remember your password?{' '}
-                  <Link href="/login" className="text-brand font-bold hover:underline">Sign in</Link>
+                  <Link href="/login" className="text-brandText font-bold hover:underline">Sign in</Link>
                 </p>
               </div>
             </>

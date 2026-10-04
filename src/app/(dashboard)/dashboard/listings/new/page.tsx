@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
@@ -83,7 +84,7 @@ function NewListingForm() {
     <div className="min-h-screen bg-ivory font-sans">
       <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <span className="text-base font-black tracking-tight">Kaltrix<span className="text-brand">OS</span></span>
+          <Logo size="md" />
           <Link href="/dashboard" className="text-xs text-inkFaint hover:text-ink transition font-medium">← Dashboard</Link>
         </div>
       </nav>
@@ -95,7 +96,7 @@ function NewListingForm() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 mb-6 text-sm">{error}</div>
+          <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-4 mb-6 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">

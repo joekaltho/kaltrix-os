@@ -1,5 +1,6 @@
 'use client'
 
+import Logo from '@/components/Logo'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -35,9 +36,7 @@ export default function LoginPage() {
         </div>
 
         <Link href="/" className="relative z-10">
-          <span className="text-xl font-black text-white tracking-tight">
-            Kaltrix<span className="text-brand">OS</span>
-          </span>
+          <Logo size="lg" tone="onDark" />
         </Link>
 
         <div className="relative z-10">
@@ -83,7 +82,7 @@ export default function LoginPage() {
 
           <div className="lg:hidden text-center mb-10">
             <Link href="/" className="text-2xl font-black text-ink">
-              Kaltrix<span className="text-brand">OS</span>
+              <Logo size="lg" />
             </Link>
           </div>
 
@@ -91,7 +90,7 @@ export default function LoginPage() {
           <p className="text-inkFaint text-sm mb-8">Sign in to your KaltrixOS account</p>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-5 text-sm">
+            <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 mb-5 text-sm">
               {error}
             </div>
           )}
@@ -114,7 +113,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold text-inkMid uppercase tracking-wider">Password</label>
-                <Link href="/forgot-password" className="text-xs text-brand hover:underline font-medium">Forgot?</Link>
+                <Link href="/forgot-password" className="text-xs text-brandText hover:underline font-medium">Forgot?</Link>
               </div>
               <div className="relative">
                 <input
@@ -157,7 +156,7 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-inkFaint text-sm">
               No account yet?{' '}
-              <Link href="/signup" className="text-brand font-bold hover:underline">Create one free</Link>
+              <Link href="/signup" className="text-brandText font-bold hover:underline">Create one free</Link>
             </p>
           </div>
         </div>

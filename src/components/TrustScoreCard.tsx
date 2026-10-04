@@ -3,9 +3,9 @@
 import { TrustSignal, trustSignalIcon, trustScoreTone } from '@/lib/trust-score'
 
 const toneClass: Record<'high' | 'medium' | 'low', string> = {
-  high: 'text-brand border-brand/20 bg-brandBg',
-  medium: 'text-amber-600 border-amber-200 bg-amber-50',
-  low: 'text-red-500 border-red-200 bg-red-50',
+  high: 'text-brandText border-brand/25 bg-brandBg',
+  medium: 'text-warn border-warnBorder bg-warnBg',
+  low: 'text-danger border-dangerBorder bg-dangerBg',
 }
 
 // What the business owner can actually do about each not-yet-earned signal.
@@ -24,14 +24,14 @@ export default function TrustScoreCard({ score, signals }: { score: number; sign
   const toImprove = signals.filter((s) => s.status !== 'complete')
 
   return (
-    <div className="bg-surface rounded-2xl p-6 border border-border shadow-card space-y-5">
+    <div className="bg-surface rounded-xl p-5 sm:p-6 border border-border space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-black text-ink uppercase tracking-wider">TrustScore</h2>
-          <p className="text-inkFaint text-xs mt-1">Built from verification and real activity, not just what you fill in</p>
+          <h2 className="text-sm font-semibold text-ink">TrustScore</h2>
+          <p className="text-inkFaint text-xs mt-0.5">Built from verification and real activity, not just what you fill in</p>
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-black ${toneClass[tone]}`}>
-          {score}<span className="text-xs font-bold opacity-70">/100</span>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-semibold tabular-nums ${toneClass[tone]}`}>
+          {score}<span className="text-xs font-normal opacity-70">/100</span>
         </div>
       </div>
 
@@ -41,22 +41,22 @@ export default function TrustScoreCard({ score, signals }: { score: number; sign
             <div className="flex items-start gap-2 min-w-0">
               <span className="mt-0.5">{trustSignalIcon(signal.status)}</span>
               <div className="min-w-0">
-                <p className="font-semibold text-ink">{signal.label}</p>
+                <p className="font-medium text-ink">{signal.label}</p>
                 <p className="text-inkFaint text-xs">{signal.detail}</p>
               </div>
             </div>
-            <span className="text-inkFaint text-xs font-bold shrink-0 pt-0.5">{signal.points}/{signal.max_points}</span>
+            <span className="text-inkFaint text-xs font-medium tabular-nums shrink-0 pt-0.5">{signal.points}/{signal.max_points}</span>
           </div>
         ))}
       </div>
 
       {toImprove.length > 0 && (
         <div className="pt-1">
-          <p className="text-xs font-bold text-inkMid uppercase tracking-wider mb-2">Improve your TrustScore</p>
+          <p className="text-xs font-medium text-inkFaint mb-2">How to improve your TrustScore</p>
           <ul className="space-y-1.5">
             {toImprove.map((signal) => (
               IMPROVE_ACTIONS[signal.key] ? (
-                <li key={signal.key} className="text-xs text-inkFaint flex items-center gap-2">
+                <li key={signal.key} className="text-sm text-inkMid flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-inkFaint shrink-0" />
                   {IMPROVE_ACTIONS[signal.key]}
                 </li>

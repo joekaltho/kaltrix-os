@@ -1,3 +1,4 @@
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -22,7 +23,7 @@ export default function FormPage({
       <header className="glass sticky top-0 z-20 border-b border-border">
         <div className="mx-auto flex h-14 max-w-2xl items-center px-4 sm:px-6">
           <Link href="/dashboard" className="text-base font-black tracking-tight">
-            Kaltrix<span className="text-brand">OS</span>
+            <Logo size="md" />
           </Link>
         </div>
       </header>

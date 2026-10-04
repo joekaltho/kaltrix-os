@@ -1,3 +1,4 @@
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 
 const LAST_UPDATED = 'September 16, 2026'
@@ -26,7 +27,7 @@ export default function TermsPage() {
       <nav className="glass border-b border-border shadow-card sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="text-base font-black text-ink tracking-tight">
-            Kaltrix<span className="text-brand">OS</span>
+            <Logo size="md" />
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link href="/privacy" className="text-inkFaint hover:text-ink transition font-medium">Privacy Policy</Link>
@@ -41,7 +42,7 @@ export default function TermsPage() {
 
         {/* Header */}
         <div className="mb-12">
-          <p className="text-brand text-xs font-black uppercase tracking-widest mb-3">Legal</p>
+          <p className="text-brandText text-xs font-black uppercase tracking-widest mb-3">Legal</p>
           <h1 className="text-3xl sm:text-4xl font-black text-ink mb-4">Terms of Service</h1>
           <p className="text-inkFaint text-sm">
             Last updated: {LAST_UPDATED} · Effective immediately for all new users
@@ -154,7 +155,7 @@ export default function TermsPage() {
               'Use the platform to facilitate illegal transactions or money laundering',
             ].map(item => (
               <li key={item} className="flex items-start gap-2">
-                <span className="text-red-500 mt-0.5 flex-shrink-0">✕</span>
+                <span className="text-danger mt-0.5 flex-shrink-0">✕</span>
                 {item}
               </li>
             ))}
@@ -182,7 +183,7 @@ export default function TermsPage() {
               'Post spam or content unrelated to a genuine business experience',
             ].map(item => (
               <li key={item} className="flex items-start gap-2">
-                <span className="text-red-500 mt-0.5 flex-shrink-0">✕</span>
+                <span className="text-danger mt-0.5 flex-shrink-0">✕</span>
                 {item}
               </li>
             ))}
