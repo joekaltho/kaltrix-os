@@ -13,9 +13,9 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { TextField } from '@/components/ui/Field'
 import Notice from '@/components/ui/Notice'
 import { formatNaira } from '@/lib/format'
-import { hasBankDetails, hasPaymentInfo, type BankFields } from '@/lib/payment'
+import { hasBankDetails, hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 
-type PaymentState = { loaded: boolean; bank: BankFields | null; instructions: string }
+type PaymentState = { loaded: boolean; bank: PaymentDetails | null }
 
 function NewInvoiceForm() {
   const router = useRouter()
@@ -25,18 +25,19 @@ function NewInvoiceForm() {
   const [error, setError] = useState('')
   const [items, setItems] = useState<InvoiceItem[]>([{ name: '', quantity: 1, price: 0 }])
   const [form, setForm] = useState({ customer_name: '', customer_phone: '', due_date: '' })
-  const [payment, setPayment] = useState<PaymentState>({ loaded: false, bank: null, instructions: '' })
+  const [payment, setPayment] = useState<PaymentState>({ loaded: false, bank: null })
 
   // Is the business's payment info set up? Drives the one-line summary / nudge
   // above the submit bar. Never blocks creating the invoice.
   useEffect(() => {
     if (!businessId) return
     const load = async () => {
-      const [{ data: bank }, { data: biz }] = await Promise.all([
-        supabase.from('business_payment_details').select('bank_name, account_name, account_number').eq('business_id', businessId).maybeSingle(),
-        supabase.from('businesses').select('payment_instructions').eq('id', businessId).maybeSingle(),
-      ])
-      setPayment({ loaded: true, bank: bank ?? null, instructions: biz?.payment_instructions ?? '' })
+      const { data: bank } = await supabase
+        .from('business_payment_details')
+        .select('bank_name, account_name, account_number, payment_instructions')
+        .eq('business_id', businessId)
+        .maybeSingle()
+      setPayment({ loaded: true, bank: bank ?? null })
     }
     load()
   }, [businessId])
@@ -100,7 +101,7 @@ function NewInvoiceForm() {
   }
 
   const bank = payment.bank
-  const paymentReady = hasPaymentInfo(bank, payment.instructions)
+  const paymentReady = hasPaymentInfo(bank)
 
   return (
     <FormPage

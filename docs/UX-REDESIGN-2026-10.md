@@ -43,11 +43,13 @@ Framework: Fitts, Hick, Zeigarnik, Jakob, Goal Gradient, Von Restorff, Miller.
 - No new features: no invoice search/filters, no customer picker, no bulk actions.
 
 ## Follow-ups worth a decision
-- `businesses_select` is `using (true)` and `authenticated` has table-wide SELECT, so any
-  signed-in user can read other businesses' `payment_instructions` (and `user_id`,
-  `trust_signals`) through the API; `anon` can read `payment_instructions` via the column
-  grant. Bank details avoid this (own table, owner-only RLS). Consider moving
-  `payment_instructions` into `business_payment_details` and dropping it from the anon grant.
+- ~~`payment_instructions` readable by anon / any signed-in user~~ — resolved (Oct 9):
+  free-text payment instructions now live in `business_payment_details` (owner-only RLS)
+  next to the bank details; the old `businesses.payment_instructions` column is dropped.
+  Two-step rollout: `20261009000100_..._expand.sql` (before deploy), then
+  `20261009000200_..._contract.sql` (after deploy). `businesses_select` is still
+  `using (true)` with table-wide SELECT for `authenticated`, so `user_id` and
+  `trust_signals` remain readable by signed-in users — separate decision.
 - White text on the brand green is ~3.3:1 (AA wants 4.5:1 for small text). Primary buttons
   use #16a34a; switching to #15803d fixes it at the cost of a darker green.
 

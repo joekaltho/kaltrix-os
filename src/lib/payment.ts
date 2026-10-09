@@ -1,17 +1,24 @@
 import type { BusinessPaymentDetails } from '@/types'
 
-export type BankFields = Pick<BusinessPaymentDetails, 'bank_name' | 'account_name' | 'account_number'>
+// Bank details once confirmed present (all three set).
+export type BankFields = { bank_name: string; account_name: string; account_number: string }
 
-export const hasBankDetails = (d?: Partial<BankFields> | null): d is BankFields =>
+// Anything that might carry bank details (DB row, form state, partial).
+export type BankInput = Partial<Record<keyof BankFields, string | null>>
+
+// What the owner-only business_payment_details table gives the app.
+export type PaymentDetails = Pick<
+  BusinessPaymentDetails,
+  'bank_name' | 'account_name' | 'account_number' | 'payment_instructions'
+>
+
+export const hasBankDetails = (d?: BankInput | null): d is BankFields =>
   !!(d && d.bank_name?.trim() && d.account_name?.trim() && d.account_number?.trim())
 
 // "Payment details are set up" for checklist/warning purposes: structured
-// bank details OR the older free-text instructions that existing businesses
-// already use.
-export const hasPaymentInfo = (
-  d?: Partial<BankFields> | null,
-  instructions?: string | null
-) => hasBankDetails(d) || !!instructions?.trim()
+// bank details OR free-text payment instructions.
+export const hasPaymentInfo = (d?: (BankInput & { payment_instructions?: string | null }) | null) =>
+  hasBankDetails(d) || !!d?.payment_instructions?.trim()
 
 // Bank details are all-or-nothing: a half-filled bank block on an invoice is
 // worse than none. Returns an error message, or null when valid.

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import CopyLinkButton from '@/components/CopyLinkButton'
-import { hasBankDetails, type BankFields } from '@/lib/payment'
+import { hasBankDetails, type BankInput } from '@/lib/payment'
 
 // The "Payment information" block shown on invoices — and, identically, as the
 // live preview in Business settings, so what the owner sees is what customers get.
@@ -10,7 +10,7 @@ export default function PaymentInformation({
   instructions,
   fallback,
 }: {
-  bank?: Partial<BankFields> | null
+  bank?: BankInput | null
   instructions?: string | null
   // Shown (under the same heading) when the business hasn't set anything up.
   fallback?: ReactNode

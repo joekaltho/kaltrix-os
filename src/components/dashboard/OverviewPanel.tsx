@@ -9,7 +9,7 @@ import { hasFeature, type Plan } from '@/lib/check-plan'
 import { monthlyEquivNgn } from '@/lib/plans'
 import { trustScoreTone } from '@/lib/trust-score'
 import { daysUntil, formatDate, formatNaira, isSameLocalDay } from '@/lib/format'
-import { hasPaymentInfo, type BankFields } from '@/lib/payment'
+import { hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 import { IMPROVE_ACTIONS } from '@/components/TrustScoreCard'
 import { StatusBadge, bookingTone, type Tone } from '@/components/ui/StatusBadge'
 import { ButtonLink } from '@/components/ui/Button'
@@ -20,7 +20,7 @@ const card = 'rounded-xl border border-border bg-surface'
 interface Props {
   business: Business
   plan: Plan
-  bank: BankFields | null
+  bank: PaymentDetails | null
   bookings: Booking[]
   messages: Message[]
   invoices: Invoice[]
@@ -46,7 +46,7 @@ export default function OverviewPanel({ business, plan, bank, bookings, messages
     { key: 'contact', label: 'Add a business email', done: !!business.email?.trim(), href: '/dashboard/profile#contact' },
     ...(invoicesOn
       ? [
-          { key: 'payment', label: 'Add payment details for invoices', done: hasPaymentInfo(bank, business.payment_instructions), href: '/dashboard/profile#payment' },
+          { key: 'payment', label: 'Add payment details for invoices', done: hasPaymentInfo(bank), href: '/dashboard/profile#payment' },
           { key: 'invoice', label: 'Create your first invoice', done: invoices.length > 0, href: '/dashboard/invoices/new' },
         ]
       : []),

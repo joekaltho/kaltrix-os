@@ -33,8 +33,8 @@ export const metadata: Metadata = {
 // decision in code we control, instead of depending on an RLS policy to
 // get it right for every possible query shape.
 //
-// The same reasoning applies to the business's bank details: they live in an
-// owner-only table (business_payment_details) and are only ever read here,
+// The same reasoning applies to the business's bank details and payment
+// instructions: they live in an owner-only table (business_payment_details) and are only ever read here,
 // server-side, for the one invoice being viewed.
 export default async function InvoiceViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -51,14 +51,14 @@ export default async function InvoiceViewPage({ params }: { params: Promise<{ id
   const [{ data: business }, { data: bank }] = await Promise.all([
     supabase
       .from('businesses')
-      .select('business_name, phone, email, website_url, address, logo_url, slug, payment_instructions')
+      .select('business_name, phone, email, website_url, address, logo_url, slug')
       .eq('id', invoice.business_id)
       .maybeSingle(),
     // Tolerant on purpose: if this lookup fails the invoice still renders,
     // falling back to the free-text instructions / contact line.
     supabase
       .from('business_payment_details')
-      .select('bank_name, account_name, account_number')
+      .select('bank_name, account_name, account_number, payment_instructions')
       .eq('business_id', invoice.business_id)
       .maybeSingle(),
   ])
@@ -201,7 +201,7 @@ export default async function InvoiceViewPage({ params }: { params: Promise<{ id
             ) : (
               <PaymentInformation
                 bank={bank}
-                instructions={business.payment_instructions}
+                instructions={bank?.payment_instructions}
                 fallback={
                   <>Contact {business.business_name}{business.phone ? ` at ${business.phone}` : ''} to arrange payment.</>
                 }

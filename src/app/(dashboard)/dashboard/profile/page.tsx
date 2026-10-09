@@ -78,7 +78,7 @@ export default function BusinessSettingsPage() {
           // Owner-only table. Tolerant: a failed lookup just means "not set yet".
           const { data: bank } = await supabase
             .from('business_payment_details')
-            .select('bank_name, account_name, account_number')
+            .select('bank_name, account_name, account_number, payment_instructions')
             .eq('business_id', business.id)
             .maybeSingle()
 
@@ -95,7 +95,7 @@ export default function BusinessSettingsPage() {
             bank_name: bank?.bank_name || '',
             account_name: bank?.account_name || '',
             account_number: bank?.account_number || '',
-            payment_instructions: business.payment_instructions || '',
+            payment_instructions: bank?.payment_instructions || '',
           }
           setForm(loaded)
           setInitial(loaded)
@@ -169,7 +169,6 @@ export default function BusinessSettingsPage() {
         phone: form.phone,
         website_url: form.website_url,
         description: form.description,
-        payment_instructions: form.payment_instructions,
         email: form.email.trim() || null,
         address: form.address.trim() || null,
         logo_url,
@@ -184,15 +183,19 @@ export default function BusinessSettingsPage() {
       return
     }
 
-    // Bank details: all three set -> upsert; all cleared -> remove the row.
+    // Payment details (owner-only table): bank details are all-or-nothing, the
+    // instructions text is independent. Anything set -> upsert one row; both
+    // cleared -> remove the row.
     const accountNumber = form.account_number.replace(/\s+/g, '')
     const hasBank = !!(form.bank_name.trim() && form.account_name.trim() && accountNumber)
-    const { error: bankWriteError } = hasBank
+    const instructions = form.payment_instructions.trim()
+    const { error: bankWriteError } = hasBank || instructions
       ? await supabase.from('business_payment_details').upsert({
           business_id: businessId,
-          bank_name: form.bank_name.trim(),
-          account_name: form.account_name.trim(),
-          account_number: accountNumber,
+          bank_name: hasBank ? form.bank_name.trim() : null,
+          account_name: hasBank ? form.account_name.trim() : null,
+          account_number: hasBank ? accountNumber : null,
+          payment_instructions: instructions || null,
           updated_at: new Date().toISOString(),
         })
       : await supabase.from('business_payment_details').delete().eq('business_id', businessId)

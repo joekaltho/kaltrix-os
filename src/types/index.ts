@@ -29,19 +29,19 @@ export interface Business {
   is_verified: boolean
   slug: string
   created_at: string
-  // Optional, business-provided free text shown on the customer-facing
-  // invoice view (see /invoice/[id]) -- e.g. bank transfer details or a
-  // mobile money handle. Never fabricated; empty until the business sets it.
-  payment_instructions?: string | null
 }
 
-// Owner-only bank details for invoices. Lives in its own table (RLS: owner
+// Owner-only payment info for invoices. Lives in its own table (RLS: owner
 // only) rather than on `businesses`, which every signed-in user can read.
+// A row holds structured bank details (all three fields, or none), free-text
+// payment instructions (e.g. a mobile money handle), or both. Never fabricated;
+// no row until the business sets something.
 export interface BusinessPaymentDetails {
   business_id: string
-  bank_name: string
-  account_name: string
-  account_number: string
+  bank_name: string | null
+  account_name: string | null
+  account_number: string | null
+  payment_instructions: string | null
 }
 
 export interface Customer {

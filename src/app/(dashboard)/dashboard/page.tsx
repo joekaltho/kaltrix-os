@@ -10,7 +10,7 @@ import { Building2 } from 'lucide-react'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
 import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
-import { hasPaymentInfo, type BankFields } from '@/lib/payment'
+import { hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 import { siteOrigin } from '@/lib/format'
 import ListingsPanel from '@/components/ListingsPanel'
 import BusinessPulsePanel from '@/components/BusinessPulsePanel'
@@ -52,7 +52,7 @@ function Dashboard() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const [business, setBusiness] = useState<Business | null>(null)
-  const [bank, setBank] = useState<BankFields | null>(null)
+  const [bank, setBank] = useState<PaymentDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   // One-time redirect params: ?upgraded=true (Paystack) and ?created=<thing>
@@ -115,7 +115,7 @@ function Dashboard() {
           const [subState, { data: messagesData }, { data: bankData }] = await Promise.all([
             getSubscriptionState(businessData.id),
             supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-            supabase.from('business_payment_details').select('bank_name, account_name, account_number').eq('business_id', businessData.id).maybeSingle(),
+            supabase.from('business_payment_details').select('bank_name, account_name, account_number, payment_instructions').eq('business_id', businessData.id).maybeSingle(),
           ])
           setSubscription(subState)
           setPlan(subState.plan)
@@ -378,7 +378,7 @@ function Dashboard() {
               {activeTab === 'invoices' && (
                 <InvoicesPanel
                   invoices={invoices}
-                  paymentReady={hasPaymentInfo(bank, business.payment_instructions)}
+                  paymentReady={hasPaymentInfo(bank)}
                   onStatus={updateInvoiceStatus}
                 />
               )}
