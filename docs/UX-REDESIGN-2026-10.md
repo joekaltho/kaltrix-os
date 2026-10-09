@@ -46,8 +46,8 @@ Framework: Fitts, Hick, Zeigarnik, Jakob, Goal Gradient, Von Restorff, Miller.
 - ~~`payment_instructions` readable by anon / any signed-in user~~ — resolved (Oct 9):
   free-text payment instructions now live in `business_payment_details` (owner-only RLS)
   next to the bank details; the old `businesses.payment_instructions` column is dropped.
-  Two-step rollout: `20261009000100_..._expand.sql` (before deploy), then
-  `20261009000200_..._contract.sql` (after deploy). `businesses_select` is still
+  Two-step rollout: `20261009025227_..._expand.sql` (before deploy), then
+  `20261009030329_..._contract.sql` (after deploy). `businesses_select` is still
   `using (true)` with table-wide SELECT for `authenticated`, so `user_id` and
   `trust_signals` remain readable by signed-in users — separate decision.
 - White text on the brand green is ~3.3:1 (AA wants 4.5:1 for small text). Primary buttons

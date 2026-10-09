@@ -1,4 +1,4 @@
--- STEP 2 of 2 (contract). Apply ONLY AFTER the matching app code is deployed.
+-- STEP 2 of 2 (contract). Applied after the matching app code was deployed.
 --
 -- Once the app reads and writes payment instructions through
 -- business_payment_details, the old businesses.payment_instructions column is
