@@ -19,9 +19,12 @@ export const LIMITS = {
   phone: 25,
   email: 254,
   reportDetails: 500,
+  feedback: 2000,
 } as const
 
 export const REPORT_REASONS = ['fake', 'spam', 'self_review', 'offensive', 'irrelevant', 'other'] as const
+export const FEEDBACK_KINDS = ['bug', 'idea', 'other'] as const
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number]
 export type ReportReason = (typeof REPORT_REASONS)[number]
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -185,4 +188,37 @@ export function validateReportInput(body: Record<string, unknown>): Validated<Re
       details: details.value === '' ? null : details.value,
     },
   }
+}
+
+export interface FeedbackInput {
+  kind: FeedbackKind
+  message: string
+  contact: string | null
+}
+
+// Feedback is open to anyone, so `source` and `business_id` are NOT accepted
+// from the client: the route derives them from the signed-in session.
+export function validateFeedbackInput(body: Record<string, unknown>): Validated<FeedbackInput> {
+  if (typeof body.kind !== 'string' || !(FEEDBACK_KINDS as readonly string[]).includes(body.kind)) {
+    return { ok: false, error: 'Please choose what kind of feedback this is' }
+  }
+  const message = cleanBlock(body.message, 'Feedback', LIMITS.feedback, true)
+  if (!message.ok) return message
+  if (message.value.length < 3) return { ok: false, error: 'Please write a little more' }
+
+  // Optional reply contact: an email or a phone number, nothing else.
+  const contact = cleanLine(body.contact, 'Contact', LIMITS.email, false)
+  if (!contact.ok) return contact
+  let contactValue: string | null = null
+  if (contact.value !== '') {
+    if (contact.value.includes('@')) {
+      if (!EMAIL_RE.test(contact.value)) return { ok: false, error: 'Enter a valid email address' }
+    } else {
+      const phone = cleanPhone(contact.value)
+      if (!phone.ok) return { ok: false, error: 'Contact must be an email address or phone number' }
+    }
+    contactValue = contact.value
+  }
+
+  return { ok: true, value: { kind: body.kind as FeedbackKind, message: message.value, contact: contactValue } }
 }

@@ -28,7 +28,8 @@ Set-Content -Encoding UTF8 "docs\technical.md" "# KaltrixOS — Technical Docume
 - invoices — Invoice records with line items
 - messages — Customer to business messages
 - reviews — Business reviews and ratings
-- waitlist — Pre-launch email signups
+- waitlist — Pre-launch email signups (legacy: no code reads or writes it any more; drop once its rows are exported)
+- feedback — Product feedback from businesses (dashboard) and customers (/feedback). Written only by /api/feedback; admins read/triage it in /admin
 - leads — Agency lead pipeline
 
 ## TrustScore Algorithm

@@ -3,7 +3,7 @@
 import Logo from '@/components/Logo'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { ExternalLink, LogOut, Menu, Settings, Sparkles, X, Zap, CreditCard } from 'lucide-react'
+import { ExternalLink, LogOut, Menu, MessageSquareHeart, Settings, Sparkles, X, Zap, CreditCard } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import type { Business } from '@/types'
 import type { Plan, SubscriptionState } from '@/lib/check-plan'
@@ -120,6 +120,10 @@ export function Sidebar({ business, userName, plan, subscription, activeTab, nav
                 View public page
               </Link>
             )}
+            <Link href="/dashboard/feedback" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-inkMid transition-colors hover:bg-ivoryDim hover:text-ink">
+              <MessageSquareHeart className="h-[18px] w-[18px] shrink-0 text-inkFaint" aria-hidden />
+              Send feedback
+            </Link>
             {showUpgrade && (
               <Link href="/dashboard/upgrade" className="flex items-center gap-3 rounded-lg bg-brandBg px-3 py-2 text-sm font-semibold text-brandText transition-colors hover:bg-brandMid">
                 <Zap className="h-[18px] w-[18px] shrink-0" aria-hidden />

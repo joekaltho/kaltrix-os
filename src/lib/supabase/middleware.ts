@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect admin routes: require both authentication and an admin role.
   // NOTE: this is defense-in-depth, not a substitute for restrictive RLS
-  // policies on the businesses/profiles/waitlist tables — a client with the
+  // policies on the businesses/profiles/feedback tables — a client with the
   // anon key can still query Supabase directly if RLS allows it.
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {

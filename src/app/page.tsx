@@ -692,6 +692,7 @@ export default function LandingPage() {
             <Link href="/discover" className="hover:text-ink transition-all duration-300 hover:underline underline-offset-4 hover:scale-105">Discover</Link>
             <Link href="/signup" className="hover:text-ink transition-all duration-300 hover:underline underline-offset-4 hover:scale-105">Register</Link>
             <Link href="/login" className="hover:text-ink transition-all duration-300 hover:underline underline-offset-4 hover:scale-105">Sign in</Link>
+            <Link href="/feedback" className="hover:text-ink transition-all duration-300 hover:underline underline-offset-4 hover:scale-105">Feedback</Link>
           </div>
           <p className="text-inkFaint text-xs text-center sm:text-right">
             Built by <span className="text-inkMid font-semibold">Kaltrix Agency</span>

@@ -29,12 +29,21 @@ interface Profile {
   created_at: string
 }
 
-interface WaitlistEntry {
+interface FeedbackEntry {
   id: string
-  name: string
-  email: string
-  business_type: string
+  source: 'business' | 'customer'
+  kind: 'bug' | 'idea' | 'other'
+  message: string
+  contact: string | null
+  business_id: string | null
+  status: 'new' | 'reviewed' | 'done'
   created_at: string
+}
+
+const FEEDBACK_KIND_LABEL: Record<FeedbackEntry['kind'], string> = {
+  bug: 'Something broken',
+  idea: 'Idea',
+  other: 'Other',
 }
 
 interface Subscription {
@@ -63,7 +72,7 @@ export default function AdminPage() {
   const [loadError, setLoadError] = useState('')
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>([])
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [reviewReports, setReviewReports] = useState<ReviewReport[]>([])
   const [activeTab, setActiveTab] = useState('overview')
@@ -84,10 +93,10 @@ export default function AdminPage() {
           return
         }
 
-        const [businessesRes, profilesRes, waitlistRes, subsRes, reportsRes] = await Promise.all([
+        const [businessesRes, profilesRes, feedbackRes, subsRes, reportsRes] = await Promise.all([
           supabase.from('businesses').select('*').order('created_at', { ascending: false }),
           supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-          supabase.from('waitlist').select('*').order('created_at', { ascending: false }),
+          supabase.from('feedback').select('*').order('created_at', { ascending: false }),
           supabase.from('subscriptions').select('business_id, plan, status, expires_at'),
           supabase.from('review_reports')
             .select('*, reviews(reviewer_name, rating, comment, moderation_status), businesses(business_name)')
@@ -96,7 +105,7 @@ export default function AdminPage() {
 
         setBusinesses(businessesRes.data || [])
         setProfiles(profilesRes.data || [])
-        setWaitlist(waitlistRes.data || [])
+        setFeedback((feedbackRes.data as FeedbackEntry[]) || [])
         setSubscriptions(subsRes.data || [])
         setReviewReports((reportsRes.data as unknown as ReviewReport[]) || [])
       } catch {
@@ -176,22 +185,9 @@ export default function AdminPage() {
     window.open('https://wa.me/' + number, '_blank')
   }
 
-  const exportWaitlistCSV = () => {
-    const headers = ['Name', 'Email', 'Business Type', 'Signed Up']
-    const rows = waitlist.map(e => [
-      e.name || 'Anonymous',
-      e.email,
-      e.business_type?.replace('_', ' ') || 'Not specified',
-      new Date(e.created_at).toLocaleDateString(),
-    ])
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `kaltrix-waitlist-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  const setFeedbackStatus = async (id: string, status: FeedbackEntry['status']) => {
+    const { error } = await supabase.from('feedback').update({ status }).eq('id', id)
+    if (!error) setFeedback(prev => prev.map(f => (f.id === id ? { ...f, status } : f)))
   }
 
   const noWebsite = businesses.filter(b => !b.website_url)
@@ -238,6 +234,8 @@ export default function AdminPage() {
   }
 
   const openReports = reviewReports.filter(r => r.status === 'open')
+  const newFeedback = feedback.filter(f => f.status === 'new')
+  const businessName = (id: string | null) => businesses.find(b => b.id === id)?.business_name
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -245,7 +243,7 @@ export default function AdminPage() {
     { id: 'users', label: `Users (${profiles.length})` },
     { id: 'reviews', label: `Reported Reviews (${openReports.length})` },
     { id: 'flagged', label: `Leads (${flagged.length})` },
-    { id: 'waitlist', label: `Waitlist (${waitlist.length})` },
+    { id: 'feedback', label: `Feedback (${newFeedback.length})` },
   ]
 
   return (
@@ -294,7 +292,7 @@ export default function AdminPage() {
           {[
             { label: 'No Website', value: noWebsite.length, color: 'text-yellow-400' },
             { label: 'Unverified', value: unverified.length, color: 'text-orange-400' },
-            { label: 'Waitlist', value: waitlist.length, color: 'text-blue-400' },
+            { label: 'New feedback', value: newFeedback.length, color: 'text-blue-400' },
           ].map(stat => (
             <div key={stat.label} className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
               <p className="text-gray-400 text-xs mb-2 uppercase tracking-wider">{stat.label}</p>
@@ -345,24 +343,22 @@ export default function AdminPage() {
             </div>
 
             <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-              <h3 className="font-black text-sm uppercase tracking-wider text-gray-400 mb-4">Recent Waitlist</h3>
+              <h3 className="font-black text-sm uppercase tracking-wider text-gray-400 mb-4">Recent Feedback</h3>
               <div className="space-y-3">
-                {waitlist.slice(0, 5).map(e => (
-                  <div key={e.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold">{e.name || 'Anonymous'}</p>
-                      <p className="text-xs text-gray-500">{e.email}</p>
-                    </div>
-                    <span className="text-xs text-blue-400">{e.business_type?.replace('_', ' ') || '—'}</span>
+                {feedback.length === 0 && <p className="text-sm text-gray-500">No feedback yet</p>}
+                {feedback.slice(0, 5).map(f => (
+                  <div key={f.id} className="flex items-start justify-between gap-3">
+                    <p className="text-sm text-gray-300 line-clamp-2">{f.message}</p>
+                    <span className="shrink-0 text-xs text-blue-400">{f.source === 'business' ? 'Business' : 'Customer'}</span>
                   </div>
                 ))}
               </div>
-              {waitlist.length > 0 && (
+              {feedback.length > 0 && (
                 <button
-                  onClick={exportWaitlistCSV}
+                  onClick={() => setActiveTab('feedback')}
                   className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold py-2 rounded-lg transition border border-gray-700"
                 >
-                  Export All to CSV
+                  View all feedback
                 </button>
               )}
             </div>
@@ -601,45 +597,41 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* WAITLIST */}
-        {activeTab === 'waitlist' && (
+        {/* FEEDBACK */}
+        {activeTab === 'feedback' && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-400 text-sm">{waitlist.length} signups total</p>
-              {waitlist.length > 0 && (
-                <button
-                  onClick={exportWaitlistCSV}
-                  className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition border border-gray-700 flex items-center gap-2"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Export CSV
-                </button>
-              )}
-            </div>
-            {waitlist.length === 0 ? (
+            <p className="text-gray-400 text-sm mb-4">{feedback.length} total · {newFeedback.length} new</p>
+            {feedback.length === 0 ? (
               <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center">
-                <p className="text-gray-400">No waitlist signups yet</p>
-                <p className="text-gray-600 text-sm mt-1">Share the landing page to get signups</p>
+                <p className="text-gray-400">No feedback yet</p>
+                <p className="text-gray-600 text-sm mt-1">Businesses send it from the dashboard; customers from /feedback</p>
               </div>
-            ) : waitlist.map((entry) => (
-              <div key={entry.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex items-center justify-between">
-                <div>
-                  <p className="font-black text-sm">{entry.name || 'Anonymous'}</p>
-                  <p className="text-gray-400 text-xs">{entry.email}</p>
-                  <p className="text-gray-600 text-xs mt-0.5">
-                    {entry.business_type?.replace('_', ' ') || 'Not specified'} · {new Date(entry.created_at).toLocaleDateString()}
-                  </p>
+            ) : feedback.map(f => (
+              <div key={f.id} className={`bg-gray-900 rounded-xl p-4 border ${f.status === 'new' ? 'border-blue-400/30' : 'border-gray-800'}`}>
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">
+                    {f.source === 'business' ? (businessName(f.business_id) || 'Business') : 'Customer'}
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${f.kind === 'bug' ? 'bg-red-400/10 text-red-400' : f.kind === 'idea' ? 'bg-green-400/10 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
+                    {FEEDBACK_KIND_LABEL[f.kind]}
+                  </span>
+                  <span className="text-xs text-gray-600">{new Date(f.created_at).toLocaleString()}</span>
                 </div>
-                <button
-                  onClick={() => handleWhatsApp(entry.email)}
-                  className="text-xs text-gray-400 hover:text-green-400 transition"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </button>
+                <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">{f.message}</p>
+                {f.contact && <p className="text-xs text-gray-500 mt-2">Reply to: {f.contact}</p>}
+                <div className="flex gap-2 mt-3">
+                  {f.status === 'new' && (
+                    <button onClick={() => setFeedbackStatus(f.id, 'reviewed')} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition">
+                      Mark reviewed
+                    </button>
+                  )}
+                  {f.status !== 'done' && (
+                    <button onClick={() => setFeedbackStatus(f.id, 'done')} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-400/10 text-green-400 hover:bg-green-400/20 border border-green-400/20 transition">
+                      Done
+                    </button>
+                  )}
+                  {f.status === 'done' && <span className="text-xs text-gray-600 py-1.5">Done</span>}
+                </div>
               </div>
             ))}
           </div>
