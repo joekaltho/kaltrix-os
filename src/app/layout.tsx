@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import './globals.css'
 import { ThemeProvider } from '@/context/ThemeContext'
+import Analytics from '@/components/Analytics'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kaltrixos.com'),
@@ -64,6 +65,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )

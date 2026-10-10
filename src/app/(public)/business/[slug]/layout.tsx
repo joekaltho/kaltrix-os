@@ -53,6 +53,14 @@ export async function generateMetadata(
       description,
       url: `${SITE_URL}/business/${slug}`,
       type: 'website',
+      images: [
+        {
+          url: '/opengraph-image.png',
+          width: 1200,
+          height: 630,
+          alt: "KaltrixOS — Africa's Business Operating System",
+        },
+      ],
     },
   }
 }

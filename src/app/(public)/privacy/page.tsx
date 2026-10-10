@@ -1,7 +1,7 @@
 import Logo from '@/components/Logo'
 import Link from 'next/link'
 
-const LAST_UPDATED = 'September 16, 2026'
+const LAST_UPDATED = 'October 10, 2026'
 const COMPANY = 'Kaltrix Agency'
 const PRODUCT = 'KaltrixOS'
 const EMAIL = 'kaltrix.ng@gmail.com'
@@ -153,6 +153,8 @@ export default function PrivacyPage() {
             {[
               { party: 'Supabase', reason: 'Database and authentication infrastructure. Data is stored on servers in the EU/US region.' },
               { party: 'Paystack', reason: 'Payment processing for subscription plans. They handle all card data under their own PCI-DSS compliance.' },
+              { party: 'Google Analytics', reason: 'Measures visits to our public pages (home, Discover, business profiles, sign-up and login). It is not loaded in the signed-in dashboard, admin area or on invoice links.' },
+              { party: 'Sentry', reason: 'Receives technical error reports (error message, browser and device type, page path) so we can fix bugs. We configure it not to send cookies, request contents, or query strings, and invoice IDs are removed from page paths.' },
               { party: 'Law Enforcement', reason: 'We may disclose data if required to do so by Nigerian law or a valid court order.' },
             ].map(item => (
               <div key={item.party} className="px-4 py-3">
@@ -208,7 +210,7 @@ export default function PrivacyPage() {
             {[
               { type: 'Session cookies', desc: 'To keep you logged in while using the platform.' },
               { type: 'Preference cookies', desc: 'To remember your settings.' },
-              { type: 'Analytics cookies', desc: 'To understand how the platform is used (aggregated, not personal).' },
+              { type: 'Analytics cookies', desc: 'Set by Google Analytics on our public pages, to understand how the platform is used in aggregate.' },
             ].map(item => (
               <li key={item.type} className="flex items-start gap-2">
                 <span className="text-inkFaint mt-0.5 flex-shrink-0">·</span>

@@ -15,6 +15,14 @@ export const metadata: Metadata = {
       'Browse verified Nigerian businesses on KaltrixOS -- filter by TrustScore, industry, and city.',
     url: `${SITE_URL}/discover`,
     type: 'website',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: "KaltrixOS — Africa's Business Operating System",
+      },
+    ],
   },
 }
 
