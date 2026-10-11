@@ -221,6 +221,12 @@ const handlePaymentSuccess = useCallback(async (planKey: string, reference: stri
       alert('Payment is being set up. Contact kaltrix.ng@gmail.com to upgrade manually.')
       return
     }
+    // Without a business there is nothing for the webhook to activate, so the
+    // charge would go through and the plan would never change. Block it here.
+    if (!businessId) {
+      alert('Create your business profile first, then upgrade. You have not been charged.')
+      return
+    }
     if (!paystackLoaded || !window.PaystackPop) {
       alert('Payment system is loading, please try again in a moment.')
       return
