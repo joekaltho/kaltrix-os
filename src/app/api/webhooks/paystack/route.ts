@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse, type NextRequest } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isValidPlanAmount, billingPeriodExpiresAt, type BillingPeriod } from '@/lib/plans'
 
@@ -19,6 +20,19 @@ interface PaystackChargeEvent {
   }
 }
 
+// Anything that stops a verified payment from reaching the database is worth
+// knowing about immediately: the customer has been charged but not upgraded,
+// and Paystack only retries for a limited time. Extras are ids and amounts
+// only, never emails or card data.
+async function reportFailure(message: string, extra: Record<string, unknown> = {}) {
+  Sentry.captureMessage(message, {
+    level: 'error',
+    tags: { area: 'paystack-webhook' },
+    extra,
+  })
+  await Sentry.flush(2000)
+}
+
 function getMetadataField(
   event: PaystackChargeEvent,
   key: 'business_id' | 'plan' | 'billing'
@@ -34,6 +48,7 @@ export async function POST(request: NextRequest) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY
   if (!secretKey) {
     console.error('PAYSTACK_SECRET_KEY is not set — webhook cannot verify requests, failing closed.')
+    await reportFailure('Paystack webhook: PAYSTACK_SECRET_KEY is not set')
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
@@ -57,6 +72,8 @@ export async function POST(request: NextRequest) {
 
   if (!signatureValid) {
     console.error('Paystack webhook signature mismatch — rejecting.')
+    // Also what a live/test key mix-up looks like, so don't stay silent.
+    await reportFailure('Paystack webhook: signature mismatch (check PAYSTACK_SECRET_KEY matches the Paystack mode)')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
@@ -74,6 +91,7 @@ export async function POST(request: NextRequest) {
 
   if (status !== 'success' || !businessId || !plan || !reference) {
     console.error('Paystack webhook: incomplete event payload', { reference, businessId, plan, status })
+    await reportFailure('Paystack webhook: incomplete event payload', { reference, businessId, plan, status })
     return NextResponse.json({ error: 'Incomplete event payload' }, { status: 400 })
   }
 
@@ -86,6 +104,7 @@ export async function POST(request: NextRequest) {
 
   if (!verifyRes.ok) {
     console.error('Paystack verify call failed', reference, verifyRes.status)
+    await reportFailure('Paystack webhook: verify call failed', { reference, httpStatus: verifyRes.status })
     return NextResponse.json({ error: 'Verification call failed' }, { status: 502 })
   }
 
@@ -94,17 +113,29 @@ export async function POST(request: NextRequest) {
 
   if (!verifiedData || verifiedData.status !== 'success') {
     console.error('Paystack verify: transaction not successful', reference, verifiedData?.status)
+    await reportFailure('Paystack webhook: transaction not verified as successful', {
+      reference,
+      verifiedStatus: verifiedData?.status,
+    })
     return NextResponse.json({ error: 'Transaction not verified as successful' }, { status: 400 })
   }
 
   if (verifiedData.amount !== amount) {
     console.error('Paystack verify: amount mismatch between webhook and verify API', reference)
+    await reportFailure('Paystack webhook: amount mismatch between webhook and verify API', { reference })
     return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 })
   }
 
   if (!isValidPlanAmount(plan, billing, amount)) {
     console.error('Paystack verify: amount does not match expected plan price', {
       reference,
+      plan,
+      billing,
+      amount,
+    })
+    await reportFailure('Paystack webhook: amount does not match plan price', {
+      reference,
+      businessId,
       plan,
       billing,
       amount,
@@ -145,6 +176,13 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error('Failed to write subscription after verified payment', reference, error)
+    await reportFailure('Paystack webhook: verified payment but subscription write failed', {
+      reference,
+      businessId,
+      plan,
+      billing,
+      dbError: error.message,
+    })
     // Return 500 so Paystack retries the webhook — this is recoverable, the
     // payment is real, we just failed to record it.
     return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 })
