@@ -107,6 +107,42 @@ export interface Listing {
   created_at: string
 }
 
+// Inventory & Stock Management (see supabase/migrations/20261014055333_*).
+// Stock lives in its own owner-only table keyed by listing; `listings` is
+// still the one product catalog.
+export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock'
+
+export type InventoryMovementType = 'opening' | 'receipt' | 'issue' | 'adjustment'
+
+// One tracked product, as returned by get_inventory_overview().
+export interface InventoryItem {
+  listing_id: string
+  name: string
+  image_url: string | null
+  is_active: boolean
+  quantity: number
+  low_stock_threshold: number | null
+  unit: string | null
+  stock_status: StockStatus
+  updated_at: string
+}
+
+// Append-only history row. listing_id is null once the product was deleted
+// (product_name keeps the history readable).
+export interface InventoryMovement {
+  id: string
+  listing_id: string | null
+  product_name: string
+  movement_type: InventoryMovementType
+  quantity_change: number
+  balance_before: number
+  balance_after: number
+  reason: string
+  note: string | null
+  reference: string | null
+  created_at: string
+}
+
 export interface Expense {
   id: string
   business_id: string

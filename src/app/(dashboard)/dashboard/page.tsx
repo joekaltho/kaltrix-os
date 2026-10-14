@@ -13,6 +13,7 @@ import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib
 import { hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 import { siteOrigin } from '@/lib/format'
 import ListingsPanel from '@/components/ListingsPanel'
+import InventoryPanel from '@/components/dashboard/InventoryPanel'
 import BusinessPulsePanel from '@/components/BusinessPulsePanel'
 import CopyLinkButton from '@/components/CopyLinkButton'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -218,7 +219,7 @@ function Dashboard() {
 
   const navItems: NavItem[] = NAV_BASE.filter(
     (item) =>
-      item.id === 'overview' || item.id === 'inbox' || item.id === 'listings' || item.id === 'pulse' ||
+      item.id === 'overview' || item.id === 'inbox' || item.id === 'listings' || item.id === 'inventory' || item.id === 'pulse' ||
       (item.id === 'bookings' && hasFeature(plan, 'bookings')) ||
       (item.id === 'customers' && hasFeature(plan, 'crm')) ||
       (item.id === 'invoices' && hasFeature(plan, 'invoices'))
@@ -286,6 +287,7 @@ function Dashboard() {
       action: <ButtonLink href="/dashboard/invoices/new" variant="primary">New invoice</ButtonLink>,
     },
     listings: { title: 'Listings', description: 'Manage what shows in your public Shop' },
+    inventory: { title: 'Inventory', description: 'Track stock for the products in your Shop' },
     pulse: { title: 'Business Pulse', description: 'How your business is doing right now' },
   }
   const header = headers[activeTab]
@@ -383,6 +385,7 @@ function Dashboard() {
                 />
               )}
               {activeTab === 'listings' && <ListingsPanel businessId={business.id} plan={plan} />}
+              {activeTab === 'inventory' && <InventoryPanel businessId={business.id} />}
 
               {activeTab === 'pulse' && (
                 hasFeature(plan, 'analytics') ? (
