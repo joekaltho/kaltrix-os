@@ -14,6 +14,8 @@ export interface NavItem {
   icon: LucideIcon
   group: NavGroup
   badge?: number
+  // Draws a small "NEW" pill (feature announcements; see feature-announcements.ts).
+  isNew?: boolean
   // 'alert' draws attention (unread messages); 'count' is just a quiet number.
   badgeTone?: 'alert' | 'count'
 }

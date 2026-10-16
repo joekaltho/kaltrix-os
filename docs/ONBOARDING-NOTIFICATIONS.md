@@ -1,0 +1,100 @@
+# Onboarding emails, announcements, notifications, verification
+
+Added Oct 15 2026. Migrations: `20261015120000_admin_set_business_verified`,
+`20261015120100_welcome_email_outbox`, `20261015120200_business_notifications`
+(apply in that order; each is idempotent).
+
+## Welcome email
+
+- **Trigger:** creating a business inserts one `email_deliveries` row
+  (`kind = 'welcome'`, `pending`) via a database trigger. The trigger can never
+  fail a registration. Businesses that existed before the migration get no row,
+  so nobody receives a retroactive welcome.
+- **Send:** `POST /api/onboarding/welcome`, called once by the create-business
+  page and once per tab session by the dashboard while the business is under 7
+  days old (the retry path). The route takes **no input**: the recipient is the
+  signed-in user's *confirmed* email, the business is looked up from the
+  session. Auth required; rate-limited per user (10/h) and per IP (30/h).
+- **No duplicates:** `claim_email_delivery()` is one atomic `UPDATE ...
+  RETURNING`, so concurrent requests can't both win (raced 8-way x 40 in
+  `supabase/tests/onboarding_concurrency.sh`). Resend also receives
+  `Idempotency-Key: welcome-<business id>`, covering a crash between "accepted"
+  and "marked sent". `UNIQUE (business_id, kind)` is the last guard.
+- **Failures:** the HTTP response is always `{ status }` with 200 and never
+  affects the dashboard. A failed send is recorded (`failed`, short
+  non-sensitive `last_error` such as `resend_403_validation_error`) and retried
+  on the owner's next dashboard load, 2 min apart, max 3 attempts. A claim
+  abandoned mid-send is reclaimable after 10 min.
+- **No key configured:** `RESEND_API_KEY` unset leaves rows `pending` (no attempt
+  used); they go out once the key exists, if the owner opens the dashboard
+  within 7 days of registering.
+- **Sender:** `KaltrixOS <updates@kaltrixos.com>` (constant in `src/lib/resend.ts`).
+  No `resend` package: plain `fetch` to Resend's REST API.
+
+### Checking on it (SQL)
+
+```sql
+-- Overview
+select status, count(*) from email_deliveries group by 1;
+-- What went wrong
+select business_id, status, attempts, last_error, updated_at
+  from email_deliveries where status <> 'sent' order by updated_at desc;
+-- Re-queue one that ran out of attempts (after fixing the cause)
+update email_deliveries set status = 'pending', attempts = 0, last_error = null
+  where business_id = '<id>' and kind = 'welcome';
+```
+
+## "NEW" badge + Inventory intro
+
+`src/lib/feature-announcements.ts` defines the rules; `use-announcement.ts`
+applies them. The badge shows next to Inventory in the sidebar (and as a dot on
+mobile's "More") until the user opens Inventory once or the announcement expires
+(`expiresAt`, currently 2026-12-15). The intro card on the Inventory tab shows
+until dismissed. State is per browser + business in `localStorage`; nothing is
+stored server-side. To announce another feature, add an `Announcement` and pass
+`isNew` on its nav item.
+
+## Notifications
+
+Table `notifications`, written **only by database triggers**, so every code path
+(public API routes, Paystack webhook, admin page, cron) is covered. Owners can
+read their own rows and set `read_at`; they cannot create, edit or delete.
+`href` is constrained to in-app paths by a CHECK (and re-checked in the UI).
+Notification failures are swallowed with a WARNING: they can never roll back the
+message, review, payment, stock change or verification that caused them.
+
+| Type | Source |
+| --- | --- |
+| `new_message` | row in `messages` |
+| `new_review` | row in `reviews` |
+| `review_flagged`, `review_removed` | `reviews.moderation_status` changes |
+| `verification_granted`, `verification_removed` | `businesses.is_verified` changes |
+| `plan_activated` | Paystack payment recorded in `subscriptions` (deduped per reference) |
+| `trial_ending` | hourly `pg_cron` job `notify-trials-ending` (<= 3 days left) |
+| `trial_ended`, `plan_expired` | subscription lapses to Free |
+| `low_stock`, `out_of_stock` | `inventory_items.stock_status` crosses the line |
+
+Not covered on purpose: bookings (owner-created; there is no public booking
+flow, so nothing inbound), overdue invoices (a time-based sweep like
+`notify_trials_ending` is the natural next addition).
+
+The bell polls every 60 s while the tab is visible and on focus. Supabase
+Realtime would make it instant but needs the table added to the
+`supabase_realtime` publication; not done.
+
+## Verified badge fix
+
+Root cause: `businesses` has no admin UPDATE policy, so the admin page's direct
+`update ... is_verified = true` matched **0 rows with no error**, while the page
+flipped its own state to "Verified". The public profile reads the real value, so
+it never showed the badge. Now `admin_set_business_verified(id, bool)` (admin
+only, changes nothing but `is_verified`) is the write path, and the admin page
+updates only after the database confirms, showing an error otherwise.
+
+Known sibling issue, not changed: the admin page's *Delete business* has the same
+shape (no admin DELETE policy; the UI removes the row regardless).
+
+## Tests
+
+See `supabase/tests/README.md`. `npm test` covers the pure logic (templates,
+transport, delivery orchestration, notification helpers).

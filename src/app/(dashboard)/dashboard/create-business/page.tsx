@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { SelectField, TextAreaField, TextField } from '@/components/ui/Field'
 import Notice from '@/components/ui/Notice'
 import { industries } from '@/lib/industries'
+import { requestWelcomeEmail } from '@/lib/welcome-client'
 
 // Onboarding stays short on purpose: the four required fields first, the
 // optional extras second. Contact email/address and payment details are
@@ -97,6 +98,10 @@ export default function CreateBusinessPage() {
       setLoading(false)
       return
     }
+
+    // Welcome email: fire-and-forget, never blocks or fails registration (the
+    // database already queued it when the business row was created).
+    requestWelcomeEmail()
 
     // Straight to the dashboard (its checklist takes it from here) rather than
     // a "Profile created!" screen followed by a 2s wait.

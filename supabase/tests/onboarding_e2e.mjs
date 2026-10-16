@@ -1,0 +1,218 @@
+// End-to-end check of the REAL client paths for the onboarding work:
+// supabase-js -> PostgREST -> Postgres (RLS, grants, SECURITY DEFINER
+// functions, JWT subjects, error shapes), plus the real deliverWelcomeEmail()
+// against a real database with a fake email sender.
+//
+// Scratch databases only. Needs: Postgres with onboarding_harness.sql + the
+// three Oct 15 2026 migrations applied, and PostgREST running against it
+// (see supabase/tests/README.md). Env: PGHOST PGPORT PGDATABASE (psql),
+// POSTGREST_URL (default http://127.0.0.1:3011), JWT_SECRET.
+import { createHmac, randomUUID } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import assert from 'node:assert/strict'
+import { createClient } from '@supabase/supabase-js'
+import { deliverWelcomeEmail } from '../../src/lib/welcome-delivery.ts'
+import { buildWelcomeEmail } from '../../src/lib/welcome-email.ts'
+import { NOTIFICATION_COLUMNS, safeHref } from '../../src/lib/notifications.ts'
+
+const URL_ = process.env.POSTGREST_URL ?? 'http://127.0.0.1:3011'
+const SECRET = process.env.JWT_SECRET
+if (!SECRET) throw new Error('Set JWT_SECRET to the jwt-secret your scratch PostgREST was started with')
+
+const A = 'a0000000-0000-0000-0000-00000000000a'
+const B = 'b0000000-0000-0000-0000-00000000000b'
+const ADMIN = 'ad000000-0000-0000-0000-0000000000ad'
+
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+const jwt = (claims) => {
+  const head = b64({ alg: 'HS256', typ: 'JWT' })
+  const body = b64({ exp: Math.floor(Date.now() / 1000) + 3600, ...claims })
+  return `${head}.${body}.${createHmac('sha256', SECRET).update(`${head}.${body}`).digest('base64url')}`
+}
+// supabase-js appends /rest/v1; PostgREST serves from /. Strip it.
+const rewrite = (u, init) => fetch(String(u).replace('/rest/v1', ''), init)
+const client = (claims) =>
+  createClient(URL_, 'unused-key', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: rewrite, headers: { Authorization: `Bearer ${jwt(claims)}` } },
+  })
+const sql = (q) => execFileSync('psql', ['-qAt', '-v', 'ON_ERROR_STOP=1', '-c', q], { encoding: 'utf8' }).trim()
+
+const owner = (id) => client({ sub: id, role: 'authenticated' })
+const asA = owner(A)
+const asB = owner(B)
+const asAdmin = owner(ADMIN)
+const anon = client({ role: 'anon' })
+const service = client({ role: 'service_role' })
+
+let passed = 0
+const check = (name, fn) => fn().then(
+  () => { passed++; console.log(`  ok  ${name}`) },
+  (e) => { console.error(`  FAIL ${name}\n       ${e.message}`); process.exitCode = 1 },
+)
+
+// ---- fixtures ---------------------------------------------------------------
+sql(`truncate public.businesses, public.profiles cascade;
+     insert into public.profiles (id, role) values ('${A}', 'business'), ('${B}', 'business'), ('${ADMIN}', 'admin');`)
+
+// Exactly the insert the create-business page performs (as the signed-in owner, through RLS).
+const create = (c, uid, name, slug) =>
+  c.from('businesses').insert({ user_id: uid, business_name: name, industry: 'food', city: 'Abuja', slug })
+const bizId = (slug) => sql(`select id from public.businesses where slug = '${slug}'`)
+
+console.log('Registration + welcome outbox')
+await check('owner creates a business through RLS; one pending welcome row is queued', async () => {
+  const { error } = await create(asA, A, 'Alpha Foods', 'alpha-foods-x1')
+  assert.equal(error, null)
+  assert.equal(sql(`select count(*) from public.email_deliveries where status='pending' and attempts=0`), '1')
+})
+await check('owners cannot read or write the outbox through the API', async () => {
+  const r = await asA.from('email_deliveries').select('*')
+  assert.ok(r.error, 'select must be denied'); assert.equal(r.error.code, '42501')
+  const w = await asA.from('email_deliveries').update({ status: 'sent' }).eq('business_id', bizId('alpha-foods-x1')).select()
+  assert.ok(w.error || (w.data ?? []).length === 0)
+  const c = await asA.rpc('claim_email_delivery', { p_business_id: bizId('alpha-foods-x1'), p_kind: 'welcome' })
+  assert.ok(c.error, 'owners must not be able to claim'); assert.equal(c.error.code, '42501')
+})
+
+const sendOk = (log) => async (p) => { log.push(p); await new Promise((r) => setTimeout(r, 80)); return { ok: true, id: 'em_test' } }
+const deliver = (id, name, slug, send) =>
+  deliverWelcomeEmail({ service, businessId: id, recipient: 'owner@example.com', email: buildWelcomeEmail({ businessName: name, slug }), send })
+
+await check('six concurrent requests for one business send exactly one email', async () => {
+  const id = bizId('alpha-foods-x1'); const log = []
+  const outcomes = await Promise.all(Array.from({ length: 6 }, () => deliver(id, 'Alpha Foods', 'alpha-foods-x1', sendOk(log))))
+  assert.equal(log.length, 1, `sender called ${log.length}x`)
+  assert.equal(outcomes.filter((o) => o === 'sent').length, 1)
+  assert.equal(outcomes.filter((o) => o === 'skipped').length, 5)
+  assert.equal(log[0].idempotencyKey, `welcome-${id}`)
+  assert.equal(sql(`select status||','||attempts||','||(provider_id is not null)||','||(sent_at is not null) from public.email_deliveries where business_id='${id}'`), 'sent,1,true,true')
+})
+await check('a later call (dashboard retry) after success sends nothing', async () => {
+  const log = []
+  assert.equal(await deliver(bizId('alpha-foods-x1'), 'Alpha Foods', 'alpha-foods-x1', sendOk(log)), 'skipped')
+  assert.equal(log.length, 0)
+})
+await check('provider outage: marked failed, not retried immediately, retried after the delay, then sent', async () => {
+  assert.equal((await create(asB, B, 'Beta Tailors', 'beta-tailors-x2')).error, null)
+  const id = bizId('beta-tailors-x2'); const log = []
+  const err = console.error; console.error = () => {}
+  try {
+    assert.equal(await deliver(id, 'Beta Tailors', 'beta-tailors-x2', async (p) => { log.push(p); return { ok: false, error: 'resend_500' } }), 'failed')
+    assert.equal(sql(`select status||','||attempts||','||last_error from public.email_deliveries where business_id='${id}'`), 'failed,1,resend_500')
+    assert.equal(await deliver(id, 'Beta Tailors', 'beta-tailors-x2', sendOk(log)), 'skipped', 'backoff: no immediate retry')
+  } finally { console.error = err }
+  sql(`update public.email_deliveries set updated_at = now() - interval '5 minutes' where business_id='${id}'`)
+  assert.equal(await deliver(id, 'Beta Tailors', 'beta-tailors-x2', sendOk(log)), 'sent')
+  assert.equal(sql(`select status||','||attempts||','||coalesce(last_error,'none') from public.email_deliveries where business_id='${id}'`), 'sent,2,none')
+  assert.equal(log.length, 2)
+})
+await check('no API key configured: attempt is given back; email goes out once configured', async () => {
+  const id = randomUUID()
+  sql(`insert into public.businesses (id, user_id, business_name, slug) values ('${id}', '${randomUUID()}', 'Gamma', 'gamma-x3')`)
+  assert.equal(await deliver(id, 'Gamma', 'gamma-x3', async () => ({ ok: false, notConfigured: true })), 'not_configured')
+  assert.equal(sql(`select status||','||attempts from public.email_deliveries where business_id='${id}'`), 'pending,0')
+  assert.equal(await deliver(id, 'Gamma', 'gamma-x3', sendOk([])), 'sent')
+})
+await check('a business that pre-dates the feature (no outbox row) is never emailed', async () => {
+  const id = randomUUID()
+  sql(`insert into public.businesses (id, user_id, business_name, slug) values ('${id}', '${randomUUID()}', 'Old', 'old-x4');
+       delete from public.email_deliveries where business_id='${id}';`)
+  const log = []
+  assert.equal(await deliver(id, 'Old', 'old-x4', sendOk(log)), 'skipped')
+  assert.equal(log.length, 0)
+})
+
+console.log('Verification badge')
+const PUBLIC_COLUMNS = 'id, business_name, industry, city, phone, email, website_url, address, description, logo_url, trust_score, is_verified, slug'
+const publicProfile = (slug) => anon.from('businesses').select(PUBLIC_COLUMNS).eq('slug', slug).single()
+
+await check('ROOT CAUSE reproduced: an admin\'s direct UPDATE silently changes nothing', async () => {
+  const r = await asAdmin.from('businesses').update({ is_verified: true }).eq('id', bizId('alpha-foods-x1')).select('trust_score, trust_signals').single()
+  assert.ok(r.error, 'the old handler got an error it ignored (PGRST116: 0 rows)')
+  assert.equal(r.error.code, 'PGRST116')
+  assert.equal((await publicProfile('alpha-foods-x1')).data.is_verified, false)
+})
+await check('owners cannot verify themselves via the RPC', async () => {
+  const r = await asA.rpc('admin_set_business_verified', { p_business_id: bizId('alpha-foods-x1'), p_verified: true })
+  assert.ok(r.error); assert.equal(r.error.code, '42501')
+  assert.equal((await publicProfile('alpha-foods-x1')).data.is_verified, false)
+})
+await check('anonymous visitors cannot call the RPC', async () => {
+  const r = await anon.rpc('admin_set_business_verified', { p_business_id: bizId('alpha-foods-x1'), p_verified: true })
+  assert.ok(r.error)
+})
+await check('admin verifies: the RPC confirms it AND the public page query now returns is_verified=true', async () => {
+  const r = await asAdmin.rpc('admin_set_business_verified', { p_business_id: bizId('alpha-foods-x1'), p_verified: true })
+  assert.equal(r.error, null)
+  assert.equal(r.data.is_verified, true)
+  const pub = await publicProfile('alpha-foods-x1')
+  assert.equal(pub.error, null)
+  assert.equal(pub.data.is_verified, true, 'public profile data carries the verified flag the badge renders from')
+  assert.equal(pub.data.trust_score, r.data.trust_score)
+  assert.equal((await publicProfile('beta-tailors-x2')).data.is_verified, false, 'other businesses unaffected')
+})
+await check('admin removes verification: public flag follows', async () => {
+  const r = await asAdmin.rpc('admin_set_business_verified', { p_business_id: bizId('alpha-foods-x1'), p_verified: false })
+  assert.equal(r.data.is_verified, false)
+  assert.equal((await publicProfile('alpha-foods-x1')).data.is_verified, false)
+  await asAdmin.rpc('admin_set_business_verified', { p_business_id: bizId('alpha-foods-x1'), p_verified: true })
+})
+await check('unknown business id surfaces an error (the admin UI shows it instead of faking success)', async () => {
+  const r = await asAdmin.rpc('admin_set_business_verified', { p_business_id: randomUUID(), p_verified: true })
+  assert.ok(r.error); assert.equal(r.error.code, 'P0002')
+})
+
+console.log('Notifications')
+const myList = (c, businessId) => c.from('notifications').select(NOTIFICATION_COLUMNS).eq('business_id', businessId).order('created_at', { ascending: false }).limit(20)
+await check('events create notifications the owner can read exactly as the bell does', async () => {
+  const id = bizId('alpha-foods-x1')
+  assert.equal((await service.from('messages').insert({ business_id: id, sender_name: 'Ada', sender_phone: '0801', content: 'Do you deliver?' })).error, null)
+  assert.equal((await service.from('reviews').insert({ business_id: id, reviewer_name: 'Chidi', rating: 5, comment: 'Great' })).error, null)
+  const list = await myList(asA, id)
+  assert.equal(list.error, null)
+  const types = list.data.map((n) => n.type).sort()
+  assert.deepEqual(types, ['new_message', 'new_review', 'verification_granted', 'verification_granted', 'verification_removed'].sort())
+  for (const n of list.data) assert.ok(n.href === null || safeHref(n.href), `href ${n.href} passes the client check`)
+  const unread = await asA.from('notifications').select('id', { count: 'exact', head: true }).eq('business_id', id).is('read_at', null)
+  assert.equal(unread.count, 5)
+})
+await check('owner can mark read (one and all); read state persists', async () => {
+  const id = bizId('alpha-foods-x1')
+  const first = (await myList(asA, id)).data[0]
+  assert.equal((await asA.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', first.id).is('read_at', null)).error, null)
+  assert.equal((await asA.from('notifications').select('id', { count: 'exact', head: true }).eq('business_id', id).is('read_at', null)).count, 4)
+  assert.equal((await asA.from('notifications').update({ read_at: new Date().toISOString() }).eq('business_id', id).is('read_at', null)).error, null)
+  assert.equal((await asA.from('notifications').select('id', { count: 'exact', head: true }).eq('business_id', id).is('read_at', null)).count, 0)
+})
+await check('another business owner cannot see, read-mark or touch them', async () => {
+  const id = bizId('alpha-foods-x1')
+  assert.equal((await myList(asB, id)).data.length, 0)
+  const nid = (await myList(asA, id)).data[0].id
+  const upd = await asB.from('notifications').update({ read_at: null }).eq('id', nid).select()
+  assert.equal((upd.data ?? []).length, 0)
+  assert.equal(sql(`select (read_at is not null) from public.notifications where id='${nid}'`), 't')
+})
+await check('owners cannot forge, edit, retarget or delete notifications', async () => {
+  const id = bizId('alpha-foods-x1'); const nid = (await myList(asA, id)).data[0].id
+  const forge = await asA.from('notifications').insert({ business_id: id, type: 'new_message', title: 'x', dedupe_key: 'forged' })
+  assert.ok(forge.error); assert.equal(forge.error.code, '42501')
+  const edit = await asA.from('notifications').update({ title: 'hacked', href: 'https://evil.example' }).eq('id', nid)
+  assert.ok(edit.error); assert.equal(edit.error.code, '42501')
+  const del = await asA.from('notifications').delete().eq('id', nid)
+  assert.ok(del.error); assert.equal(del.error.code, '42501')
+  assert.equal(sql(`select count(*) from public.notifications where id='${nid}'`), '1')
+})
+await check('anonymous visitors cannot read notifications', async () => {
+  const r = await anon.from('notifications').select('*')
+  assert.ok(r.error); assert.equal(r.error.code, '42501')
+})
+await check('hostile sender/reviewer names land as inert, capped text', async () => {
+  const id = bizId('alpha-foods-x1')
+  await service.from('messages').insert({ business_id: id, sender_name: '<img src=x onerror=alert(1)>', sender_phone: '0', content: '<script>alert(1)</script>' })
+  const n = (await myList(asA, id)).data.find((x) => x.type === 'new_message' && x.title.includes('<img'))
+  assert.ok(n, 'stored as plain text (the UI renders text nodes; React escapes it)')
+  assert.ok(n.title.length <= 120)
+})
+
+console.log(`\n${passed} checks passed${process.exitCode ? ', SOME FAILED' : ''}`)

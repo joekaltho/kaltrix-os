@@ -23,6 +23,7 @@ import {
   type InventoryOverview,
 } from '@/lib/inventory-api'
 import { StockActionModal, StockSettingsModal, TrackStockModal, type StockAction } from './InventoryDialogs'
+import InventoryIntro from './InventoryIntro'
 
 const STATUS_TONE: Record<StockStatus, Tone> = {
   in_stock: 'success',
@@ -42,7 +43,16 @@ type Result =
 
 const card = 'rounded-xl border border-border bg-surface'
 
-export default function InventoryPanel({ businessId }: { businessId: string }) {
+export default function InventoryPanel({
+  businessId,
+  showIntro = false,
+  onDismissIntro,
+}: {
+  businessId: string
+  // First-visit introduction (see feature-announcements.ts); off by default.
+  showIntro?: boolean
+  onDismissIntro?: () => void
+}) {
   const supabase = useState(() => createClient())[0]
 
   const [view, setView] = useState<'stock' | 'history'>('stock')
@@ -150,6 +160,7 @@ export default function InventoryPanel({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-4">
+      {showIntro && onDismissIntro && <InventoryIntro onDismiss={onDismissIntro} />}
       {notice && <Notice kind="success" onDismiss={() => setNotice(null)}>{notice}</Notice>}
 
       {/* Summary — real counts from the database; the tiles double as stock-status filters */}

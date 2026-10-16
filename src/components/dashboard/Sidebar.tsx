@@ -37,6 +37,11 @@ function NavLink({
     >
       <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-brandText' : 'text-inkFaint'}`} aria-hidden />
       <span className="flex-1">{item.label}</span>
+      {item.isNew && (
+        <span className="rounded-full bg-brandBg px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-brandText ring-1 ring-brand/25">
+          New
+        </span>
+      )}
       {(item.badge ?? 0) > 0 && (
         <span
           className={`min-w-5 rounded-full px-1.5 text-center text-xs font-semibold leading-5 ${
@@ -59,15 +64,18 @@ interface SidebarProps {
   navItems: NavItem[]
   onSelect: (tab: Tab) => void
   onSignOut: () => void
+  // Rendered at the right of the logo row (the notification bell on desktop).
+  headerAction?: React.ReactNode
 }
 
-export function Sidebar({ business, userName, plan, subscription, activeTab, navItems, onSelect, onSignOut }: SidebarProps) {
+export function Sidebar({ business, userName, plan, subscription, activeTab, navItems, onSelect, onSignOut, headerAction }: SidebarProps) {
   const showUpgrade = plan === 'free' || subscription?.isTrialing
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="shrink-0 border-b border-border px-5 py-4">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-5 py-3.5">
         <Logo size="md" />
+        {headerAction}
       </div>
 
       {business && (
@@ -184,6 +192,10 @@ export function MobileBottomNav({
     .filter((i): i is NavItem => !!i)
     .slice(0, 4)
 
+  // Inventory isn't one of the four bottom slots, so a NEW item living only in
+  // "More" gets a dot there; otherwise mobile users would never see the badge.
+  const moreHasNew = navItems.some((i) => i.isNew && !primary.some((p) => p.id === i.id))
+
   const slot = 'relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors'
 
   return (
@@ -215,7 +227,10 @@ export function MobileBottomNav({
         )
       })}
       <button type="button" onClick={onMore} className={`${slot} text-inkFaint`}>
-        <Menu className="h-5 w-5" aria-hidden />
+        <span className="relative">
+          <Menu className="h-5 w-5" aria-hidden />
+          {moreHasNew && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-brandDim" aria-label="New feature" />}
+        </span>
         More
       </button>
     </nav>

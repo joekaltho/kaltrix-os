@@ -30,3 +30,25 @@ POSTGREST_URL=http://127.0.0.1:3011 JWT_SECRET=... \
 ```
 
 Unit tests for the pure helpers (`src/lib/inventory.ts`) run with `npm test`.
+
+## Onboarding / notifications / verification (Oct 15 2026)
+
+Scratch database + the harness `onboarding_harness.sql` (Supabase stand-ins;
+table shapes and RLS copied from production), then the three
+`20261015120*` migrations in order:
+
+```bash
+createdb kx_notif
+for f in supabase/tests/onboarding_harness.sql \
+         supabase/migrations/20261015120000_admin_set_business_verified.sql \
+         supabase/migrations/20261015120100_welcome_email_outbox.sql \
+         supabase/migrations/20261015120200_business_notifications.sql; do
+  psql -d kx_notif -v ON_ERROR_STOP=1 -q -f "$f"; done
+psql -d kx_notif -v ON_ERROR_STOP=1 -q -f supabase/tests/onboarding.test.sql   # prints ALL ... PASSED
+DB=kx_notif bash supabase/tests/onboarding_concurrency.sh                      # claim race
+POSTGREST_URL=... JWT_SECRET=... PGDATABASE=kx_notif \
+  node --experimental-strip-types supabase/tests/onboarding_e2e.mjs            # supabase-js -> PostgREST
+```
+
+The e2e script also runs the real `deliverWelcomeEmail()` against the database
+with a fake sender, and checks the public-profile query the badge renders from.

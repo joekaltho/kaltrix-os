@@ -70,6 +70,7 @@ export default function AdminPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [feedback, setFeedback] = useState<FeedbackEntry[]>([])
@@ -121,29 +122,32 @@ export default function AdminPage() {
     router.push('/login')
   }
 
-  const handleVerify = async (businessId: string) => {
-    const { data } = await supabase
-      .from('businesses')
-      .update({ is_verified: true })
-      .eq('id', businessId)
-      .select('trust_score, trust_signals')
-      .single()
-    setBusinesses(businesses.map(b => b.id === businessId
-      ? { ...b, is_verified: true, trust_score: data?.trust_score ?? b.trust_score, trust_signals: data?.trust_signals ?? b.trust_signals }
+  // Verification goes through an admin-only database function
+  // (admin_set_business_verified). businesses has no admin UPDATE policy, so the
+  // old direct update silently matched zero rows while this screen still showed
+  // "Verified" -- and the public profile (which reads the real value) never got
+  // its badge. Now the screen only changes once the database confirms, and it
+  // shows the stored state the function returns.
+  const setVerified = async (businessId: string, verified: boolean) => {
+    setActionError('')
+    const { data, error } = await supabase.rpc('admin_set_business_verified', {
+      p_business_id: businessId,
+      p_verified: verified,
+    })
+    const row = data as { is_verified?: boolean; trust_score?: number; trust_signals?: Business['trust_signals'] } | null
+    if (error || !row || row.is_verified !== verified) {
+      setActionError(
+        `Couldn't ${verified ? 'verify' : 'remove verification from'} this business${error ? `: ${error.message}` : ''}. Nothing was changed.`
+      )
+      return
+    }
+    setBusinesses(prev => prev.map(b => b.id === businessId
+      ? { ...b, is_verified: row.is_verified!, trust_score: row.trust_score ?? b.trust_score, trust_signals: row.trust_signals ?? b.trust_signals }
       : b))
   }
 
-  const handleUnverify = async (businessId: string) => {
-    const { data } = await supabase
-      .from('businesses')
-      .update({ is_verified: false })
-      .eq('id', businessId)
-      .select('trust_score, trust_signals')
-      .single()
-    setBusinesses(businesses.map(b => b.id === businessId
-      ? { ...b, is_verified: false, trust_score: data?.trust_score ?? b.trust_score, trust_signals: data?.trust_signals ?? b.trust_signals }
-      : b))
-  }
+  const handleVerify = (businessId: string) => setVerified(businessId, true)
+  const handleUnverify = (businessId: string) => setVerified(businessId, false)
 
   const handleDelete = async (businessId: string) => {
     if (!confirm('Are you sure you want to delete this business? This cannot be undone.')) return
@@ -266,6 +270,13 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+
+        {actionError && (
+          <div role="alert" className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+            <span>{actionError}</span>
+            <button onClick={() => setActionError('')} aria-label="Dismiss" className="shrink-0 text-red-300 hover:text-white">&times;</button>
+          </div>
+        )}
 
         {/* Header */}
         <div className="mb-8">

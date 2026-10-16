@@ -12,6 +12,7 @@ import { Business, Booking, Message, Invoice, Customer } from '@/types'
 import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
 import { hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 import { siteOrigin } from '@/lib/format'
+import { isWithinWelcomeWindow, requestWelcomeEmail } from '@/lib/welcome-client'
 import ListingsPanel from '@/components/ListingsPanel'
 import InventoryPanel from '@/components/dashboard/InventoryPanel'
 import BusinessPulsePanel from '@/components/BusinessPulsePanel'
@@ -26,6 +27,10 @@ import InboxPanel from '@/components/dashboard/InboxPanel'
 import BookingsPanel from '@/components/dashboard/BookingsPanel'
 import CustomersPanel from '@/components/dashboard/CustomersPanel'
 import InvoicesPanel from '@/components/dashboard/InvoicesPanel'
+import NotificationBell from '@/components/dashboard/NotificationBell'
+import { INVENTORY_ANNOUNCEMENT } from '@/lib/feature-announcements'
+import { useAnnouncement } from '@/lib/use-announcement'
+import { useNotifications } from '@/lib/use-notifications'
 import { NAV_BASE, isTab, tabHref, type NavItem, type Tab } from '@/components/dashboard/nav'
 
 type NoticeState = { kind: 'success' | 'error' | 'warn'; text: string; invoiceId?: string } | null
@@ -77,6 +82,8 @@ function Dashboard() {
   const [plan, setPlan] = useState<Plan>('free')
   const [subscription, setSubscription] = useState<SubscriptionState | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const inventoryAnnouncement = useAnnouncement(INVENTORY_ANNOUNCEMENT, business?.id)
+  const notifications = useNotifications(business?.id)
 
   const tabParam = searchParams.get('tab')
   const requestedTab: Tab = isTab(tabParam) ? tabParam : 'overview'
@@ -109,6 +116,11 @@ function Dashboard() {
 
         if (businessData) {
           setBusiness(businessData)
+
+          // Retry a welcome email that failed earlier (provider outage, key not
+          // configured yet). Server-side this is a no-op unless one is actually
+          // pending, so it can't resend or backfill anything.
+          if (isWithinWelcomeWindow(businessData.created_at)) requestWelcomeEmail()
 
           // messages have no plan gating, so they can load alongside the
           // subscription lookup instead of waiting on it. Payment details
@@ -226,11 +238,19 @@ function Dashboard() {
   ).map((item) => {
     if (item.id === 'inbox') return { ...item, badge: unreadMessages.length, badgeTone: 'alert' as const }
     if (item.id === 'invoices') return { ...item, badge: unpaidInvoices.length, badgeTone: 'count' as const }
+    if (item.id === 'inventory') return { ...item, isNew: inventoryAnnouncement.showBadge }
     return item
   })
 
   // A tab the plan doesn't include (e.g. a bookmarked ?tab=invoices on Free) falls back to Overview.
   const activeTab: Tab = navItems.some((i) => i.id === requestedTab) ? requestedTab : 'overview'
+
+  // Opening Inventory counts as discovering it: the NEW badge goes away (the
+  // intro card stays until dismissed).
+  const markInventorySeen = inventoryAnnouncement.markSeen
+  useEffect(() => {
+    if (!loading && business && activeTab === 'inventory') markInventorySeen()
+  }, [loading, business, activeTab, markInventorySeen])
 
   if (loading) return <Loading />
 
@@ -246,7 +266,10 @@ function Dashboard() {
     )
   }
 
-  const sidebar = (
+  // The bell lives in the desktop sidebar and the mobile top bar, not in the
+  // mobile drawer (which would duplicate the one in the top bar).
+  const bell = business ? <NotificationBell notifications={notifications} /> : null
+  const renderSidebar = (headerAction?: React.ReactNode) => (
     <Sidebar
       business={business}
       userName={userName}
@@ -256,6 +279,7 @@ function Dashboard() {
       navItems={navItems}
       onSelect={selectTab}
       onSignOut={handleSignOut}
+      headerAction={headerAction}
     />
   )
 
@@ -297,20 +321,21 @@ function Dashboard() {
 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-surface border-r border-border h-screen sticky top-0 overflow-hidden">
-        {sidebar}
+        {renderSidebar(bell)}
       </aside>
 
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>{sidebar}</MobileDrawer>
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>{renderSidebar()}</MobileDrawer>
 
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
 
         {/* Mobile top bar: brand + plan only; navigation lives in the bottom bar */}
         <header className="md:hidden sticky top-0 z-30 glass border-b border-border px-4 h-12 flex items-center justify-between">
           <Logo size="sm" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-xs font-medium capitalize text-inkFaint">
               {plan} plan{subscription?.isTrialing ? ` · ${subscription.trialDaysLeft}d left` : ''}
             </span>
+            {bell}
             <ThemeToggle />
           </div>
         </header>
@@ -385,7 +410,13 @@ function Dashboard() {
                 />
               )}
               {activeTab === 'listings' && <ListingsPanel businessId={business.id} plan={plan} />}
-              {activeTab === 'inventory' && <InventoryPanel businessId={business.id} />}
+              {activeTab === 'inventory' && (
+                <InventoryPanel
+                  businessId={business.id}
+                  showIntro={inventoryAnnouncement.showIntro}
+                  onDismissIntro={inventoryAnnouncement.dismissIntro}
+                />
+              )}
 
               {activeTab === 'pulse' && (
                 hasFeature(plan, 'analytics') ? (
