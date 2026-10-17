@@ -82,3 +82,18 @@ test('a failure to record the outcome does not throw (Resend idempotency covers 
   const orig = console.error; console.error = () => {}
   try { assert.equal(await h.run(), 'sent') } finally { console.error = orig }
 })
+
+test('REGRESSION: retry answered "key already used with a different payload" means the first attempt was accepted -> recorded sent', async () => {
+  const h = harness({ claim: [{ id: 'd1', attempts: 2 }], send: async () => ({ ok: false, error: 'resend_409_invalid_idempotent_request', alreadyAccepted: true }) })
+  assert.equal(await h.run(), 'sent')
+  assert.equal(h.calls.updates[0].patch.status, 'sent')
+  assert.equal(h.calls.updates[0].patch.last_error, 'idempotent_replay')
+  assert.equal(h.calls.sent.length, 1, 'no extra send is attempted')
+})
+
+test('the same answer on a FIRST attempt is anomalous and stays a failure', async () => {
+  const h = harness({ claim: [{ id: 'd1', attempts: 1 }], send: async () => ({ ok: false, error: 'resend_409_invalid_idempotent_request', alreadyAccepted: true }) })
+  const orig = console.error; console.error = () => {}
+  try { assert.equal(await h.run(), 'failed') } finally { console.error = orig }
+  assert.equal(h.calls.updates[0].patch.status, 'failed')
+})

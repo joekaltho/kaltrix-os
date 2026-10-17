@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { resolveEffectivePlan } from '@/lib/check-plan'
+import { adminDeleteBusiness, adminSetBusinessVerified, type RpcCall } from '@/lib/admin-actions'
 import Link from 'next/link'
 
 interface Business {
@@ -122,27 +123,24 @@ export default function AdminPage() {
     router.push('/login')
   }
 
-  // Verification goes through an admin-only database function
-  // (admin_set_business_verified). businesses has no admin UPDATE policy, so the
-  // old direct update silently matched zero rows while this screen still showed
-  // "Verified" -- and the public profile (which reads the real value) never got
-  // its badge. Now the screen only changes once the database confirms, and it
-  // shows the stored state the function returns.
+  // Verification and deletion go through admin-only database functions
+  // (admin_set_business_verified / admin_delete_business). `businesses` has only
+  // owner policies for UPDATE and DELETE, so an admin's direct write used to match
+  // zero rows with no error while this screen updated itself anyway. Success now
+  // requires the database to confirm; the list only changes after that, and any
+  // failure is shown (see src/lib/admin-actions.ts).
+  const rpc: RpcCall = (fn, args) => supabase.rpc(fn, args)
+
   const setVerified = async (businessId: string, verified: boolean) => {
     setActionError('')
-    const { data, error } = await supabase.rpc('admin_set_business_verified', {
-      p_business_id: businessId,
-      p_verified: verified,
-    })
-    const row = data as { is_verified?: boolean; trust_score?: number; trust_signals?: Business['trust_signals'] } | null
-    if (error || !row || row.is_verified !== verified) {
-      setActionError(
-        `Couldn't ${verified ? 'verify' : 'remove verification from'} this business${error ? `: ${error.message}` : ''}. Nothing was changed.`
-      )
+    const result = await adminSetBusinessVerified(rpc, businessId, verified)
+    if (!result.ok) {
+      setActionError(result.message)
       return
     }
+    const row = result.data
     setBusinesses(prev => prev.map(b => b.id === businessId
-      ? { ...b, is_verified: row.is_verified!, trust_score: row.trust_score ?? b.trust_score, trust_signals: row.trust_signals ?? b.trust_signals }
+      ? { ...b, is_verified: row.is_verified, trust_score: row.trust_score ?? b.trust_score, trust_signals: (row.trust_signals as Business['trust_signals']) ?? b.trust_signals }
       : b))
   }
 
@@ -150,36 +148,60 @@ export default function AdminPage() {
   const handleUnverify = (businessId: string) => setVerified(businessId, false)
 
   const handleDelete = async (businessId: string) => {
-    if (!confirm('Are you sure you want to delete this business? This cannot be undone.')) return
-    await supabase.from('businesses').delete().eq('id', businessId)
-    setBusinesses(businesses.filter(b => b.id !== businessId))
+    const name = businesses.find(b => b.id === businessId)?.business_name ?? 'this business'
+    if (!confirm(`Delete "${name}"? This permanently removes the business and all of its listings, customers, invoices, bookings, messages, reviews and subscription. This cannot be undone.`)) return
+    setActionError('')
+    const result = await adminDeleteBusiness(rpc, businessId)
+    if (!result.ok) {
+      setActionError(result.message)
+      return
+    }
+    setBusinesses(prev => prev.filter(b => b.id !== businessId))
+    setSubscriptions(prev => prev.filter(s => s.business_id !== businessId))
+    setReviewReports(prev => prev.filter(r => r.business_id !== businessId))
   }
 
   // Dismiss: the report was unfounded, leave the review alone.
+  // Writes are counted (not assumed): a write that changes no row, or errors,
+  // must not look like it worked.
   const handleDismissReport = async (reportId: string) => {
+    setActionError('')
     const { data: { user } } = await getSessionUser(supabase)
-    await supabase.from('review_reports')
-      .update({ status: 'dismissed', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+    const { error, count } = await supabase.from('review_reports')
+      .update({ status: 'dismissed', reviewed_by: user?.id, reviewed_at: new Date().toISOString() }, { count: 'exact' })
       .eq('id', reportId)
-    setReviewReports(reviewReports.map(r => r.id === reportId ? { ...r, status: 'dismissed' } : r))
+    if (error || count !== 1) {
+      setActionError(`Couldn't dismiss this report${error ? `: ${error.message}` : ''}. Nothing was changed.`)
+      return
+    }
+    setReviewReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'dismissed' } : r))
   }
 
   // Uphold: the report was right — remove the review. This is the one
   // place a review actually gets taken down, and only an admin can do it
-  // (enforced by RLS, not just the UI).
+  // (enforced by RLS, not just the UI). The review is removed first (that's the
+  // part that matters); the report is then marked upheld.
   const handleUpholdReport = async (reportId: string, reviewId: string) => {
     if (!confirm('Remove this review? This will hide it from the public business page.')) return
+    setActionError('')
     const { data: { user } } = await getSessionUser(supabase)
     const now = new Date().toISOString()
-    await Promise.all([
-      supabase.from('review_reports')
-        .update({ status: 'upheld', reviewed_by: user?.id, reviewed_at: now })
-        .eq('id', reportId),
-      supabase.from('reviews')
-        .update({ moderation_status: 'removed', moderated_by: user?.id, moderated_at: now })
-        .eq('id', reviewId),
-    ])
-    setReviewReports(reviewReports.map(r => r.id === reportId ? { ...r, status: 'upheld', reviews: r.reviews ? { ...r.reviews, moderation_status: 'removed' } : r.reviews } : r))
+    const removal = await supabase.from('reviews')
+      .update({ moderation_status: 'removed', moderated_by: user?.id, moderated_at: now }, { count: 'exact' })
+      .eq('id', reviewId)
+    if (removal.error || removal.count !== 1) {
+      setActionError(`Couldn't remove this review${removal.error ? `: ${removal.error.message}` : ''}. Nothing was changed.`)
+      return
+    }
+    const marked = await supabase.from('review_reports')
+      .update({ status: 'upheld', reviewed_by: user?.id, reviewed_at: now }, { count: 'exact' })
+      .eq('id', reportId)
+    if (marked.error || marked.count !== 1) {
+      setActionError('The review was removed, but this report could not be marked as upheld. Reload the page and check it.')
+    }
+    setReviewReports(prev => prev.map(r => r.id === reportId
+      ? { ...r, status: marked.error || marked.count !== 1 ? r.status : 'upheld', reviews: r.reviews ? { ...r.reviews, moderation_status: 'removed' } : r.reviews }
+      : r))
   }
 
   // eslint-disable-next-line react-hooks/immutability -- click handler, not render; standard navigation

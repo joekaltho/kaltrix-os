@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js'
 import { deliverWelcomeEmail } from '../../src/lib/welcome-delivery.ts'
 import { buildWelcomeEmail } from '../../src/lib/welcome-email.ts'
 import { NOTIFICATION_COLUMNS, safeHref } from '../../src/lib/notifications.ts'
+import { adminDeleteBusiness, adminSetBusinessVerified } from '../../src/lib/admin-actions.ts'
 
 const URL_ = process.env.POSTGREST_URL ?? 'http://127.0.0.1:3011'
 const SECRET = process.env.JWT_SECRET
@@ -114,6 +115,23 @@ await check('no API key configured: attempt is given back; email goes out once c
   assert.equal(sql(`select status||','||attempts from public.email_deliveries where business_id='${id}'`), 'pending,0')
   assert.equal(await deliver(id, 'Gamma', 'gamma-x3', sendOk([])), 'sent')
 })
+await check('retry answered "key already used with a different payload" is recorded as sent (first attempt was accepted), not failed', async () => {
+  const id = randomUUID()
+  sql(`insert into public.businesses (id, user_id, business_name, slug) values ('${id}', '${randomUUID()}', 'Zeta', 'zeta-x6')`)
+  const err = console.error; console.error = () => {}
+  try {
+    // Attempt 1: Resend accepted it but our response was lost -> we record a failure.
+    assert.equal(await deliver(id, 'Zeta', 'zeta-x6', async () => ({ ok: false, error: 'resend_network_error' })), 'failed')
+    sql(`update public.email_deliveries set updated_at = now() - interval '5 minutes' where business_id='${id}'`)
+    // Attempt 2: the owner renamed the business, so the rebuilt payload differs -> 409.
+    const out = await deliver(id, 'Zeta Renamed', 'zeta-x6', async () => ({ ok: false, error: 'resend_409_invalid_idempotent_request', alreadyAccepted: true }))
+    assert.equal(out, 'sent')
+  } finally { console.error = err }
+  assert.equal(sql(`select status||','||attempts||','||last_error from public.email_deliveries where business_id='${id}'`), 'sent,2,idempotent_replay')
+  const log = []
+  assert.equal(await deliver(id, 'Zeta Renamed', 'zeta-x6', sendOk(log)), 'skipped')
+  assert.equal(log.length, 0, 'nothing further is ever sent')
+})
 await check('a business that pre-dates the feature (no outbox row) is never emailed', async () => {
   const id = randomUUID()
   sql(`insert into public.businesses (id, user_id, business_name, slug) values ('${id}', '${randomUUID()}', 'Old', 'old-x4');
@@ -213,6 +231,84 @@ await check('hostile sender/reviewer names land as inert, capped text', async ()
   const n = (await myList(asA, id)).data.find((x) => x.type === 'new_message' && x.title.includes('<img'))
   assert.ok(n, 'stored as plain text (the UI renders text nodes; React escapes it)')
   assert.ok(n.title.length <= 120)
+})
+
+console.log('Admin actions through the helpers the admin page uses')
+const C = 'c0000000-0000-0000-0000-00000000000c'
+const asC = owner(C)
+const adminRpc = (fn, args) => asAdmin.rpc(fn, args)
+const ownerRpc = (fn, args) => asB.rpc(fn, args)
+
+await check('helper: verify confirms the stored state; failures (non-admin, unknown id) are reported, not faked', async () => {
+  const id = bizId('beta-tailors-x2')
+  const ok = await adminSetBusinessVerified(adminRpc, id, true)
+  assert.equal(ok.ok, true); assert.equal(ok.data.is_verified, true)
+  assert.equal((await publicProfile('beta-tailors-x2')).data.is_verified, true)
+  const denied = await adminSetBusinessVerified(ownerRpc, id, false)
+  assert.equal(denied.ok, false); assert.match(denied.message, /forbidden/)
+  assert.equal((await publicProfile('beta-tailors-x2')).data.is_verified, true, 'unchanged after the rejected call')
+  const missing = await adminSetBusinessVerified(adminRpc, randomUUID(), true)
+  assert.equal(missing.ok, false); assert.match(missing.message, /business not found/)
+})
+
+let deltaId
+await check('ROOT CAUSE reproduced: an admin\'s direct DELETE through the API removes nothing and reports no error', async () => {
+  assert.equal((await create(asC, C, 'Delta Crafts', 'delta-crafts-x5')).error, null)
+  const id = deltaId = bizId('delta-crafts-x5')
+  const r = await asAdmin.from('businesses').delete().eq('id', id).select()
+  assert.equal(r.error, null)
+  assert.deepEqual(r.data, [], 'zero rows deleted, no error: exactly what the old page treated as success')
+  assert.equal(sql(`select count(*) from public.businesses where id='${id}'`), '1')
+})
+await check('owners cannot use the admin delete function; the business survives', async () => {
+  const id = bizId('delta-crafts-x5')
+  const r = await adminDeleteBusiness(ownerRpc, id)
+  assert.equal(r.ok, false); assert.match(r.message, /forbidden/); assert.match(r.message, /Nothing was deleted/)
+  assert.equal(sql(`select count(*) from public.businesses where id='${id}'`), '1')
+})
+await check('admin delete: helper confirms, business and dependants are gone, public page no longer finds it', async () => {
+  const id = bizId('delta-crafts-x5')
+  await service.from('messages').insert({ business_id: id, sender_name: 'X', content: 'hello' })
+  assert.ok(Number(sql(`select count(*) from public.notifications where business_id='${id}'`)) > 0)
+  const r = await adminDeleteBusiness(adminRpc, id)
+  assert.equal(r.ok, true); assert.deepEqual(r.data, { id, business_name: 'Delta Crafts' })
+  assert.equal(sql(`select count(*) from public.businesses where id='${id}'`), '0')
+  assert.equal(sql(`select (select count(*) from public.messages where business_id='${id}') + (select count(*) from public.notifications where business_id='${id}') + (select count(*) from public.email_deliveries where business_id='${id}')`), '0')
+  const pub = await publicProfile('delta-crafts-x5')
+  assert.ok(pub.error, 'public profile is gone'); assert.equal(pub.error.code, 'PGRST116')
+  assert.ok(Number(sql(`select count(*) from public.businesses`)) > 0, 'other businesses untouched')
+})
+await check('deleting the same business again, or an unknown id, is a reported failure, never success', async () => {
+  for (const id of [deltaId, randomUUID()]) {
+    const r = await adminDeleteBusiness(adminRpc, id)
+    assert.equal(r.ok, false); assert.match(r.message, /business not found/)
+  }
+})
+
+console.log('Review moderation (what the admin handlers rely on)')
+await check('supabase-js returns an exact row count for UPDATE (the handlers treat count !== 1 as failure)', async () => {
+  const id = bizId('alpha-foods-x1')
+  await service.from('reviews').insert({ business_id: id, reviewer_name: 'Mod Target', rating: 1, comment: 'meh' })
+  const rid = sql(`select id from public.reviews where reviewer_name='Mod Target'`)
+  const hit = await asAdmin.from('reviews').update({ moderation_status: 'removed' }, { count: 'exact' }).eq('id', rid)
+  assert.equal(hit.error, null); assert.equal(hit.count, 1, `count was ${hit.count}`)
+  const miss = await asAdmin.from('reviews').update({ moderation_status: 'removed' }, { count: 'exact' }).eq('id', randomUUID())
+  assert.equal(miss.error, null); assert.equal(miss.count, 0, 'an update that matches nothing reports 0, so the page shows an error')
+})
+await check('removing a review notifies the owner (review_removed) and links to their public page', async () => {
+  const id = bizId('alpha-foods-x1')
+  const list = await myList(asA, id)
+  const n = list.data.find((x) => x.type === 'review_removed')
+  assert.ok(n, 'review_removed notification exists')
+  assert.equal(safeHref(n.href), '/business/alpha-foods-x1')
+})
+await check('flagging a review notifies the owner once per flag', async () => {
+  const id = bizId('alpha-foods-x1')
+  await service.from('reviews').insert({ business_id: id, reviewer_name: 'Flag Target', rating: 2, comment: 'hmm' })
+  const rid = sql(`select id from public.reviews where reviewer_name='Flag Target'`)
+  await asAdmin.from('reviews').update({ moderation_status: 'flagged' }).eq('id', rid)
+  await asAdmin.from('reviews').update({ moderation_status: 'flagged' }).eq('id', rid) // no change -> no second alert
+  assert.equal(sql(`select count(*) from public.notifications where business_id='${id}' and type='review_flagged'`), '1')
 })
 
 console.log(`\n${passed} checks passed${process.exitCode ? ', SOME FAILED' : ''}`)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
   BadgeCheck,
@@ -104,7 +105,11 @@ export default function NotificationBell({ notifications }: { notifications: Not
         )}
       </button>
 
-      {open && (
+      {/* Portaled to <body>: on mobile this button sits inside the top bar, which
+          has `backdrop-filter` (.glass). That makes the bar the containing block for
+          `position: fixed` descendants, so without the portal the click-away layer
+          would cover only the 48px bar and tapping elsewhere wouldn't close the panel. */}
+      {open && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
           <div
@@ -148,7 +153,8 @@ export default function NotificationBell({ notifications }: { notifications: Not
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   )

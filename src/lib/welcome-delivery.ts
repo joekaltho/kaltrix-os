@@ -84,6 +84,17 @@ export async function deliverWelcomeEmail({
     return 'not_configured'
   }
 
+  // A retry (attempt >= 2) that Resend answers with "this key was already used
+  // with a different payload" means the earlier attempt WAS accepted (its
+  // response was lost, then the business was renamed, so the rebuilt email no
+  // longer matches). The email is out; recording `failed` would burn the remaining
+  // attempts on requests that can never succeed. A first attempt can't legitimately
+  // get this answer, so that case stays a failure.
+  if (result.alreadyAccepted && (claim.attempts ?? 1) > 1) {
+    await mark({ status: 'sent', sent_at: new Date().toISOString(), last_error: 'idempotent_replay' })
+    return 'sent'
+  }
+
   console.error('Welcome email: send failed:', result.error, 'attempt', claim.attempts)
   await mark({ status: 'failed', last_error: result.error.slice(0, 300) })
   return 'failed'

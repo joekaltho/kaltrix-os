@@ -106,3 +106,56 @@ create table public.inventory_items (
     case when quantity <= 0 then 'out_of_stock'
          when quantity <= coalesce(low_stock_threshold, 0) then 'low_stock'
          else 'in_stock' end) stored);
+
+-- feedback keeps its row when a business is deleted (FK is SET NULL in production).
+create table public.feedback (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid references public.businesses(id) on delete set null,
+  message text);
+
+-- Append-only stock history, copied from 20261014055333_inventory_stock_management
+-- (reduced to the columns the tests touch). The guard is the part that matters: it
+-- refuses direct UPDATE/DELETE but allows FK cascades (pg_trigger_depth() > 1), so
+-- deleting a whole business must still work.
+create table public.inventory_movements (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  listing_id uuid references public.listings(id) on delete set null,
+  product_name text not null,
+  movement_type text not null,
+  quantity_change integer not null,
+  created_at timestamptz not null default now());
+
+create function public.inventory_movements_guard() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if pg_trigger_depth() > 1 then
+    if tg_op = 'DELETE' then return old; end if;
+    if tg_op = 'UPDATE'
+       and new.listing_id is null and old.listing_id is not null
+       and (to_jsonb(new) - 'listing_id') = (to_jsonb(old) - 'listing_id') then
+      return new;
+    end if;
+  end if;
+  raise exception 'inventory_movements is append-only' using errcode = '42501';
+end $$;
+create trigger inventory_movements_guard_trg
+  before update or delete on public.inventory_movements
+  for each row execute function public.inventory_movements_guard();
+
+-- Production touches the parent business on every review change (trust score
+-- recompute), including when a business delete cascades into reviews. Copied from
+-- 20260909180000_trust_score_v2 so the cascade path is exercised for real.
+create function public.touch_business_trust_score() returns trigger
+language plpgsql security definer set search_path = public set row_security = off as $$
+declare v_business_id uuid;
+begin
+  v_business_id := coalesce(new.business_id, old.business_id);
+  if v_business_id is not null then
+    update public.businesses set id = id where id = v_business_id;
+  end if;
+  return coalesce(new, old);
+end $$;
+create trigger touch_trust_score_on_review
+  after insert or update or delete on public.reviews
+  for each row execute function public.touch_business_trust_score();

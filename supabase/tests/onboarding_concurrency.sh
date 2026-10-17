@@ -31,4 +31,18 @@ if [ -n "$bad" ]; then echo "FAIL: businesses not claimed exactly once:"; echo "
 attempts=$(psql -d "$DB" -qAt -c "select count(*) from public.email_deliveries where attempts <> 1 or status <> 'sending'")
 [ "$attempts" -eq 0 ] || { echo "FAIL: $attempts rows with attempts<>1"; exit 1; }
 
-echo "ALL ONBOARDING CONCURRENCY TESTS PASSED ($N businesses x $RACERS racers, each claimed exactly once)"
+# ---- Trial-ending sweep: overlapping cron runs must never duplicate ------------
+psql -d "$DB" -qAt -v ON_ERROR_STOP=1 <<SQL >/dev/null
+truncate public.businesses cascade;
+insert into public.businesses (user_id, business_name, slug)
+  select gen_random_uuid(), 'Trial ' || g, 'trial-' || g from generate_series(1, $N) g;
+insert into public.subscriptions (business_id, plan, status, trial_started_at, expires_at)
+  select id, 'pro', 'trialing', now() - interval '28 days', now() + interval '1 day' from public.businesses;
+SQL
+seq 1 $((RACERS * 3)) | xargs -P $((RACERS * 3)) -I{} psql -d "$DB" -qAt -c "select public.notify_trials_ending();" >/dev/null
+got=$(psql -d "$DB" -qAt -c "select count(*) from public.notifications where type = 'trial_ending'")
+dups=$(psql -d "$DB" -qAt -c "select count(*) from (select business_id, dedupe_key from public.notifications group by 1, 2 having count(*) > 1) d")
+[ "$got" -eq "$N" ] || { echo "FAIL: expected $N trial_ending notifications, got $got"; exit 1; }
+[ "$dups" -eq 0 ] || { echo "FAIL: $dups duplicate notifications"; exit 1; }
+
+echo "ALL ONBOARDING CONCURRENCY TESTS PASSED ($N businesses x $RACERS racers claimed exactly once; $((RACERS * 3)) overlapping trial sweeps made exactly $N notifications)"

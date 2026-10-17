@@ -26,7 +26,12 @@ export interface EmailPayload {
 export type SendResult =
   | { ok: true; id: string | null }
   | { ok: false; notConfigured: true }
-  | { ok: false; notConfigured?: false; error: string }
+  // alreadyAccepted: Resend answered 409 invalid_idempotent_request, i.e. an email
+  // with this Idempotency-Key was already accepted in the last 24h but this
+  // request's payload differs (e.g. the business was renamed between a lost
+  // response and the retry). Resend's docs: retrying is useless -- the original
+  // email stands. Callers should treat the email as sent.
+  | { ok: false; notConfigured?: false; error: string; alreadyAccepted?: true }
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY)
@@ -81,7 +86,12 @@ export async function sendEmail(payload: EmailPayload, deps: SendDeps = {}): Pro
       body = null
     }
 
-    if (!res.ok) return { ok: false, error: describeFailure(res.status, body) }
+    if (!res.ok) {
+      const error = describeFailure(res.status, body)
+      return error === 'resend_409_invalid_idempotent_request'
+        ? { ok: false, error, alreadyAccepted: true }
+        : { ok: false, error }
+    }
 
     const id =
       body && typeof body === 'object' && 'id' in body && typeof (body as { id: unknown }).id === 'string'

@@ -69,3 +69,12 @@ test('a 200 with an unreadable body is still a success (id unknown)', async () =
   const res = await sendEmail(payload, { apiKey: 'k', fetchImpl: async () => new Response('not json', { status: 200 }) })
   assert.deepEqual(res, { ok: true, id: null })
 })
+
+test('409 invalid_idempotent_request is flagged alreadyAccepted; other 409s and errors are not', async () => {
+  const replay = await sendEmail(payload, { apiKey: 'k', fetchImpl: reply(409, { name: 'invalid_idempotent_request', message: 'Same idempotency key used with a different request payload.' }) })
+  assert.deepEqual(replay, { ok: false, error: 'resend_409_invalid_idempotent_request', alreadyAccepted: true })
+  const concurrent = await sendEmail(payload, { apiKey: 'k', fetchImpl: reply(409, { name: 'concurrent_idempotent_requests' }) })
+  assert.deepEqual(concurrent, { ok: false, error: 'resend_409_concurrent_idempotent_requests' })
+  const other = await sendEmail(payload, { apiKey: 'k', fetchImpl: reply(500) })
+  assert.equal(other.alreadyAccepted, undefined)
+})

@@ -91,8 +91,37 @@ it never showed the badge. Now `admin_set_business_verified(id, bool)` (admin
 only, changes nothing but `is_verified`) is the write path, and the admin page
 updates only after the database confirms, showing an error otherwise.
 
-Known sibling issue, not changed: the admin page's *Delete business* has the same
-shape (no admin DELETE policy; the UI removes the row regardless).
+## Admin delete fix (Oct 16 2026)
+
+Same root cause for *Delete business*: `businesses_delete` is owner-only, so an
+admin's delete matched 0 rows and the page removed the row from its list anyway.
+Now `admin_delete_business(id)` (admin only; migration
+`20261016100000_admin_delete_business`) is the only path. The page confirms with
+the business name and what will be removed, and changes its list only after the
+database returns the deleted row. Deleting cascades to every dependent table
+(`feedback` is kept, detached); it is irreversible and does not delete the auth
+user. `src/lib/admin-actions.ts` holds the "success only if the database
+confirmed" rule for both verify and delete. Review dismiss/uphold now also check
+their write counts instead of assuming success.
+
+Not changed: the logo file in Storage is not removed when a business is deleted.
+
+## Welcome-email retry and Resend idempotency
+
+Resend keeps an `Idempotency-Key` for 24 h: same key + same payload returns the
+original email; same key + *different* payload is `409
+invalid_idempotent_request`. A retry rebuilds the email, so if the owner renamed
+their business after an attempt Resend had already accepted (response lost), the
+retry gets that 409. On a retry (attempt >= 2) that 409 now means "already
+accepted": the row is recorded `sent` with `last_error = 'idempotent_replay'`
+instead of burning the remaining attempts. On a first attempt it stays a failure.
+
+## UI notes
+
+The notification panel is rendered through a portal into `<body>`. The mobile top
+bar uses `backdrop-filter` (`.glass`), which makes it the containing block for
+`position: fixed` children; without the portal the click-away layer covered only
+the bar and tapping elsewhere did not close the panel.
 
 ## Tests
 
