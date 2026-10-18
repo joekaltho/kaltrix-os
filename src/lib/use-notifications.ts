@@ -5,16 +5,24 @@ import { createClient } from '@/lib/supabase/client'
 import {
   NOTIFICATION_COLUMNS,
   NOTIFICATION_PAGE_SIZE,
-  NOTIFICATION_POLL_MS,
   applyLocalReads,
   type AppNotification,
 } from '@/lib/notifications'
+import {
+  REALTIME_DEBOUNCE_MS,
+  notificationFilter,
+  pollIntervalMs,
+  realtimeStateFor,
+  type RealtimeState,
+} from '@/lib/notifications-sync'
 
 export type NotificationsState = ReturnType<typeof useNotifications>
 
-// Loads the owner's latest notifications + unread count, refreshes every minute
-// while the tab is visible and whenever it regains focus, and lets the owner
-// mark items read. All access is through the owner-only RLS policies on
+// Loads the owner's latest notifications + unread count and keeps them current:
+// pushed live over Supabase Realtime when available (new rows, and reads made in
+// another tab/device), with polling as the fallback (every minute with no live
+// connection, every 5 minutes as a safety net with one) plus a refresh whenever the
+// tab regains focus. Lets the owner mark items read. All access is through the owner-only RLS policies on
 // public.notifications (select + update of read_at); the browser can't create,
 // edit or delete notifications.
 export function useNotifications(businessId: string | null | undefined) {
@@ -22,6 +30,7 @@ export function useNotifications(businessId: string | null | undefined) {
   const [items, setItems] = useState<AppNotification[]>([])
   const [unread, setUnread] = useState(0)
   const [status, setStatus] = useState<'idle' | 'ready' | 'error'>('idle')
+  const [realtime, setRealtime] = useState<RealtimeState>('connecting')
   // Ids the user marked read that a stale in-flight fetch might still report as unread.
   const locallyRead = useRef<Set<string>>(new Set())
   const requestId = useRef(0)
@@ -58,24 +67,60 @@ export function useNotifications(businessId: string | null | undefined) {
     for (const n of rows) if (n.read_at) locallyRead.current.delete(n.id)
   }, [supabase, businessId])
 
+  // Initial load + refresh when the tab regains focus.
   useEffect(() => {
     if (!businessId) return
     // Deferred a tick so the first load isn't a synchronous state update inside
     // the effect body; later refreshes run from timers/events.
     const first = setTimeout(() => void refresh(), 0)
-    const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh()
-    }, NOTIFICATION_POLL_MS)
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh() }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
     return () => {
       clearTimeout(first)
-      clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('focus', onVisible)
     }
   }, [businessId, refresh])
+
+  // Polling: every minute while there is no live connection, every 5 minutes as a
+  // safety net once there is. Only while the tab is visible.
+  useEffect(() => {
+    if (!businessId) return
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh()
+    }, pollIntervalMs(realtime))
+    return () => clearInterval(timer)
+  }, [businessId, refresh, realtime])
+
+  // Live updates. Row-level security is applied per subscriber by Realtime, so this
+  // only ever delivers the signed-in owner's own notifications; the event is used
+  // as a nudge to re-read (debounced), not trusted as data. If the subscription is
+  // refused (migration not applied, blocked websocket) the state goes 'down' and the
+  // polling above takes over.
+  useEffect(() => {
+    const filter = notificationFilter(businessId)
+    if (!filter) return
+    let debounce: ReturnType<typeof setTimeout> | undefined
+    const nudge = () => {
+      clearTimeout(debounce)
+      debounce = setTimeout(() => void refresh(), REALTIME_DEBOUNCE_MS)
+    }
+    const channel = supabase
+      .channel(`notifications:${businessId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter }, nudge)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter }, nudge)
+      .subscribe((channelStatus) => {
+        const next = realtimeStateFor(channelStatus)
+        setRealtime(next)
+        // (Re)connected: catch up on anything missed while we were away.
+        if (next === 'connected') nudge()
+      })
+    return () => {
+      clearTimeout(debounce)
+      void supabase.removeChannel(channel)
+    }
+  }, [supabase, businessId, refresh])
 
   const markRead = useCallback(
     async (id: string) => {
@@ -116,5 +161,5 @@ export function useNotifications(businessId: string | null | undefined) {
     }
   }, [businessId, items, supabase, refresh])
 
-  return { items, unread, status, refresh, markRead, markAllRead }
+  return { items, unread, status, realtime, refresh, markRead, markAllRead }
 }

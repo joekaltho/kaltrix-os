@@ -11,7 +11,7 @@ const call = (result) => { const calls = []; const fn = async (name, args) => { 
 test('delete: success only when the database reports deleting exactly that row', async () => {
   const c = call({ data: { id: ID, business_name: 'Alpha Foods' }, error: null })
   const r = await adminDeleteBusiness(c, ID)
-  assert.deepEqual(r, { ok: true, data: { id: ID, business_name: 'Alpha Foods' } })
+  assert.deepEqual(r, { ok: true, data: { id: ID, business_name: 'Alpha Foods', logo: null } })
   assert.deepEqual(c.calls, [{ name: 'admin_delete_business', args: { p_business_id: ID } }])
 })
 
@@ -46,7 +46,7 @@ test('delete: a thrown network error is contained', async () => {
 
 test('delete: missing business name still succeeds (name is informational)', async () => {
   const r = await adminDeleteBusiness(call({ data: { id: ID }, error: null }), ID)
-  assert.deepEqual(r, { ok: true, data: { id: ID, business_name: null } })
+  assert.deepEqual(r, { ok: true, data: { id: ID, business_name: null, logo: null } })
 })
 
 test('verify: success returns the STORED state, not what was requested', async () => {
@@ -74,4 +74,9 @@ test('verify: errors and network failures are surfaced with the right verb', asy
   const n = await adminSetBusinessVerified(call(new Error('boom')), ID, true)
   assert.equal(n.ok, false)
   assert.match(n.message, /network error/)
+})
+
+test('delete: the logo outcome from the server is passed through for the page to report', async () => {
+  const r = await adminDeleteBusiness(call({ data: { id: ID, business_name: 'A', logo: 'failed' }, error: null }), ID)
+  assert.deepEqual(r, { ok: true, data: { id: ID, business_name: 'A', logo: 'failed' } })
 })

@@ -3,9 +3,10 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyLocalReads, countUnread, formatBadgeCount, formatRelativeTime, safeHref } from '../src/lib/notifications.ts'
 import {
-  INVENTORY_ANNOUNCEMENT, announcementKey, isAnnouncementLive, readFlag, writeFlag,
+  INVENTORY_ANNOUNCEMENT, announcementKey, isAlreadyUsingInventory, isAnnouncementLive, readFlag, writeFlag,
 } from '../src/lib/feature-announcements.ts'
 import { isWithinWelcomeWindow } from '../src/lib/welcome-client.ts'
+import { POLL_FAST_MS, POLL_SLOW_MS, REALTIME_DEBOUNCE_MS, notificationFilter, pollIntervalMs, realtimeStateFor } from '../src/lib/notifications-sync.ts'
 
 test('safeHref allows only in-app paths', () => {
   for (const ok of ['/dashboard', '/dashboard?tab=inbox', '/dashboard?tab=inventory', '/dashboard/upgrade', '/dashboard/feedback', '/business/alpha-foods-x1']) {
@@ -75,4 +76,35 @@ test('welcome retry window: first 7 days only', () => {
   assert.equal(isWithinWelcomeWindow('2026-10-17T00:00:00Z', now), false, 'future timestamps rejected')
   assert.equal(isWithinWelcomeWindow(undefined, now), false)
   assert.equal(isWithinWelcomeWindow('nope', now), false)
+})
+
+test('inventory intro/badge: only for people who have not started tracking stock', () => {
+  assert.equal(isAlreadyUsingInventory(0), false)
+  assert.equal(isAlreadyUsingInventory(1), true)
+  assert.equal(isAlreadyUsingInventory(250), true)
+  assert.equal(isAlreadyUsingInventory(null), false, 'unknown yet: do not decide')
+  assert.equal(isAlreadyUsingInventory(undefined), false)
+  assert.equal(isAlreadyUsingInventory(-1), false)
+})
+
+test('realtime status mapping: only SUBSCRIBED counts as live; failures fall back to polling', () => {
+  assert.equal(realtimeStateFor('SUBSCRIBED'), 'connected')
+  for (const bad of ['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED']) assert.equal(realtimeStateFor(bad), 'down', bad)
+  for (const other of ['JOINING', 'JOINED', '', 'something-new']) assert.equal(realtimeStateFor(other), 'connecting', other)
+})
+
+test('polling: every minute without a live connection, a slow safety net with one', () => {
+  assert.equal(pollIntervalMs('connected'), POLL_SLOW_MS)
+  assert.equal(pollIntervalMs('connecting'), POLL_FAST_MS)
+  assert.equal(pollIntervalMs('down'), POLL_FAST_MS)
+  assert.ok(POLL_SLOW_MS > POLL_FAST_MS && POLL_FAST_MS === 60_000)
+  assert.ok(REALTIME_DEBOUNCE_MS > 0 && REALTIME_DEBOUNCE_MS < 2000)
+})
+
+test('SECURITY: the realtime filter is only ever built from a real uuid', () => {
+  const id = '3f2c9c1e-aaaa-4bbb-8ccc-1234567890ab'
+  assert.equal(notificationFilter(id), `business_id=eq.${id}`)
+  for (const bad of [null, undefined, '', 'abc', `${id},role=eq.admin`, `${id}) or (1=1`, `${id}\n`, 42]) {
+    assert.equal(notificationFilter(bad), null, JSON.stringify(bad))
+  }
 })

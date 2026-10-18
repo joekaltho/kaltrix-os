@@ -147,14 +147,29 @@ export default function AdminPage() {
   const handleVerify = (businessId: string) => setVerified(businessId, true)
   const handleUnverify = (businessId: string) => setVerified(businessId, false)
 
+  // Deleting also has to remove the logo file from Storage, which only the server
+  // (service role) can do, so it goes through an admin-only route that runs the same
+  // database function with this admin's own session. Adapted to the RpcCall shape so
+  // adminDeleteBusiness() applies the same "database must confirm" rule.
+  const deleteCall: RpcCall = async (_fn, args) => {
+    const res = await fetch(`/api/admin/businesses/${encodeURIComponent(String(args.p_business_id))}`, { method: 'DELETE' })
+    const body = await res.json().catch(() => null)
+    if (res.ok) return { data: body, error: null }
+    const message = body && typeof body.error === 'string' && body.error ? body.error : `request failed (${res.status})`
+    return { data: null, error: { message } }
+  }
+
   const handleDelete = async (businessId: string) => {
     const name = businesses.find(b => b.id === businessId)?.business_name ?? 'this business'
     if (!confirm(`Delete "${name}"? This permanently removes the business and all of its listings, customers, invoices, bookings, messages, reviews and subscription. This cannot be undone.`)) return
     setActionError('')
-    const result = await adminDeleteBusiness(rpc, businessId)
+    const result = await adminDeleteBusiness(deleteCall, businessId)
     if (!result.ok) {
       setActionError(result.message)
       return
+    }
+    if (result.data.logo === 'failed') {
+      setActionError(`Deleted "${name}", but its logo file could not be removed from storage.`)
     }
     setBusinesses(prev => prev.filter(b => b.id !== businessId))
     setSubscriptions(prev => prev.filter(s => s.business_id !== businessId))

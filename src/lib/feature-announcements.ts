@@ -27,6 +27,14 @@ export function isAnnouncementLive(announcement: Announcement, now: number = Dat
   return Number.isFinite(expires) && now < expires
 }
 
+// The Inventory intro and NEW badge are for people who haven't started tracking
+// stock. Anyone with at least one tracked product already knows the feature, so
+// they're not shown it (and it's recorded as seen, so it stays gone even if they
+// later stop tracking everything). `null` = not known yet: don't decide.
+export function isAlreadyUsingInventory(trackedProducts: number | null | undefined): boolean {
+  return typeof trackedProducts === 'number' && trackedProducts > 0
+}
+
 export type AnnouncementFlag = 'seen' | 'intro-dismissed'
 
 export function announcementKey(id: string, flag: AnnouncementFlag, ownerId: string): string {

@@ -43,11 +43,14 @@ for f in supabase/tests/onboarding_harness.sql \
          supabase/migrations/20261015120000_admin_set_business_verified.sql \
          supabase/migrations/20261015120100_welcome_email_outbox.sql \
          supabase/migrations/20261015120200_business_notifications.sql \
-         supabase/migrations/20261016100000_admin_delete_business.sql; do
+         supabase/migrations/20261016100000_admin_delete_business.sql \
+         supabase/migrations/20261017100000_notifications_retention.sql \
+         supabase/migrations/20261017100100_notifications_realtime.sql; do
   psql -d kx_notif -v ON_ERROR_STOP=1 -q -f "$f"; done
 psql -d kx_notif -v ON_ERROR_STOP=1 -q -f supabase/tests/onboarding.test.sql   # prints ALL ... PASSED
 psql -d kx_notif -v ON_ERROR_STOP=1 -q -f supabase/tests/admin_delete.test.sql
 psql -d kx_notif -v ON_ERROR_STOP=1 -q -f supabase/tests/trial_notifications.test.sql
+psql -d kx_notif -v ON_ERROR_STOP=1 -q -f supabase/tests/notifications_retention.test.sql   # run from the repo root (uses \i)
 DB=kx_notif bash supabase/tests/onboarding_concurrency.sh                      # claim race
 POSTGREST_URL=... JWT_SECRET=... PGDATABASE=kx_notif \
   node --experimental-strip-types supabase/tests/onboarding_e2e.mjs            # supabase-js -> PostgREST

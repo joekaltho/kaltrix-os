@@ -7,6 +7,9 @@ do $$ begin create role anon nologin; exception when duplicate_object then null;
 do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
 do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$;
 
+-- Supabase ships this publication empty on every project (checked in production).
+create publication supabase_realtime;
+
 create schema auth;
 create function auth.uid() returns uuid language sql stable as
 $$ select coalesce(

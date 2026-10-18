@@ -28,7 +28,7 @@ import BookingsPanel from '@/components/dashboard/BookingsPanel'
 import CustomersPanel from '@/components/dashboard/CustomersPanel'
 import InvoicesPanel from '@/components/dashboard/InvoicesPanel'
 import NotificationBell from '@/components/dashboard/NotificationBell'
-import { INVENTORY_ANNOUNCEMENT } from '@/lib/feature-announcements'
+import { INVENTORY_ANNOUNCEMENT, isAlreadyUsingInventory } from '@/lib/feature-announcements'
 import { useAnnouncement } from '@/lib/use-announcement'
 import { useNotifications } from '@/lib/use-notifications'
 import { NAV_BASE, isTab, tabHref, type NavItem, type Tab } from '@/components/dashboard/nav'
@@ -251,6 +251,26 @@ function Dashboard() {
   useEffect(() => {
     if (!loading && business && activeTab === 'inventory') markInventorySeen()
   }, [loading, business, activeTab, markInventorySeen])
+
+  // Anyone who already tracks stock doesn't need the NEW badge or the intro.
+  // Checked only while the badge would show, with a head-only count (no rows).
+  const inventoryBadgeShowing = inventoryAnnouncement.showBadge
+  const dismissInventoryIntro = inventoryAnnouncement.dismissIntro
+  useEffect(() => {
+    if (!inventoryBadgeShowing || !business) return
+    let cancelled = false
+    supabase
+      .from('inventory_items')
+      .select('listing_id', { count: 'exact', head: true })
+      .eq('business_id', business.id)
+      .then(({ count }) => {
+        if (!cancelled && isAlreadyUsingInventory(count)) {
+          markInventorySeen()
+          dismissInventoryIntro()
+        }
+      })
+    return () => { cancelled = true }
+  }, [inventoryBadgeShowing, business, supabase, markInventorySeen, dismissInventoryIntro])
 
   if (loading) return <Loading />
 

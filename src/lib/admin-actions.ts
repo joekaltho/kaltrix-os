@@ -1,4 +1,4 @@
-// Admin writes that go through database functions (see migrations
+// Admin writes that go through database functions / admin-only server routes (see migrations
 // 20261015120000_admin_set_business_verified and 20261016100000_admin_delete_business).
 //
 // Why this exists: `businesses` has owner-only UPDATE/DELETE policies, so an
@@ -63,7 +63,7 @@ export async function adminSetBusinessVerified(
 export async function adminDeleteBusiness(
   call: RpcCall,
   businessId: string
-): Promise<ActionResult<{ id: string; business_name: string | null }>> {
+): Promise<ActionResult<{ id: string; business_name: string | null; logo: string | null }>> {
   let res: Awaited<ReturnType<RpcCall>>
   try {
     res = await call('admin_delete_business', { p_business_id: businessId })
@@ -77,6 +77,11 @@ export async function adminDeleteBusiness(
   }
   return {
     ok: true,
-    data: { id: businessId, business_name: typeof res.data.business_name === 'string' ? res.data.business_name : null },
+    data: {
+      id: businessId,
+      business_name: typeof res.data.business_name === 'string' ? res.data.business_name : null,
+      // What happened to the logo file (removed/none/skipped/failed); informational.
+      logo: typeof res.data.logo === 'string' ? res.data.logo : null,
+    },
   }
 }

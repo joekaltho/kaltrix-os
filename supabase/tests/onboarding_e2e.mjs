@@ -15,6 +15,8 @@ import { deliverWelcomeEmail } from '../../src/lib/welcome-delivery.ts'
 import { buildWelcomeEmail } from '../../src/lib/welcome-email.ts'
 import { NOTIFICATION_COLUMNS, safeHref } from '../../src/lib/notifications.ts'
 import { adminDeleteBusiness, adminSetBusinessVerified } from '../../src/lib/admin-actions.ts'
+import { deleteBusinessAndLogo } from '../../src/lib/admin-delete.ts'
+import { logoObjectName } from '../../src/lib/logo-storage.ts'
 
 const URL_ = process.env.POSTGREST_URL ?? 'http://127.0.0.1:3011'
 const SECRET = process.env.JWT_SECRET
@@ -271,7 +273,7 @@ await check('admin delete: helper confirms, business and dependants are gone, pu
   await service.from('messages').insert({ business_id: id, sender_name: 'X', content: 'hello' })
   assert.ok(Number(sql(`select count(*) from public.notifications where business_id='${id}'`)) > 0)
   const r = await adminDeleteBusiness(adminRpc, id)
-  assert.equal(r.ok, true); assert.deepEqual(r.data, { id, business_name: 'Delta Crafts' })
+  assert.equal(r.ok, true); assert.deepEqual(r.data, { id, business_name: 'Delta Crafts', logo: null })
   assert.equal(sql(`select count(*) from public.businesses where id='${id}'`), '0')
   assert.equal(sql(`select (select count(*) from public.messages where business_id='${id}') + (select count(*) from public.notifications where business_id='${id}') + (select count(*) from public.email_deliveries where business_id='${id}')`), '0')
   const pub = await publicProfile('delta-crafts-x5')
@@ -283,6 +285,79 @@ await check('deleting the same business again, or an unknown id, is a reported f
     const r = await adminDeleteBusiness(adminRpc, id)
     assert.equal(r.ok, false); assert.match(r.message, /business not found/)
   }
+})
+
+console.log('Admin delete + logo cleanup (real database; storage is faked and records what it is asked to remove)')
+const SB = 'https://project.supabase.co'
+const logoUrl = (name) => `${SB}/storage/v1/object/public/logos/${name}`
+const removedFiles = []
+const logoDeps = (asClient) => ({
+  logoNameFor: (u, ownerId) => logoObjectName(u, ownerId, SB),
+  readBusiness: async (id) => (await asClient.from('businesses').select('user_id, logo_url').eq('id', id).maybeSingle()).data,
+  callDelete: async (id) => { const r = await asClient.rpc('admin_delete_business', { p_business_id: id }); return { data: r.data, error: r.error ? { message: r.error.message, code: r.error.code } : null } },
+  logoStillReferenced: async (u) => ((await service.from('businesses').select('id', { count: 'exact', head: true }).eq('logo_url', u)).count ?? 0) > 0,
+  removeLogo: async (name) => { removedFiles.push(name); return { removed: true, error: null } },
+})
+const seedBiz = (slug, userId, logo) => {
+  const id = randomUUID()
+  sql(`insert into public.businesses (id, user_id, business_name, slug, logo_url) values ('${id}', '${userId}', '${slug}', '${slug}', ${logo ? `'${logo}'` : 'null'})`)
+  return id
+}
+const exists = (id) => sql(`select count(*) from public.businesses where id='${id}'`) === '1'
+
+await check('admin deletes a business: its own logo file is removed, after the delete', async () => {
+  removedFiles.length = 0
+  const owner = randomUUID(); const file = `${owner}-1760000000000.jpg`
+  const id = seedBiz('logo-a', owner, logoUrl(file))
+  const r = await deleteBusinessAndLogo(id, logoDeps(asAdmin))
+  assert.deepEqual(r, { ok: true, id, business_name: 'logo-a', logo: 'removed' })
+  assert.deepEqual(removedFiles, [file]); assert.equal(exists(id), false)
+})
+await check('a non-admin is refused (403) and nothing is deleted or removed from storage', async () => {
+  removedFiles.length = 0
+  const owner = randomUUID(); const id = seedBiz('logo-b', owner, logoUrl(`${owner}-1760000000001.png`))
+  const r = await deleteBusinessAndLogo(id, logoDeps(asB))
+  assert.deepEqual(r, { ok: false, status: 403, message: 'Admins only' })
+  assert.deepEqual(removedFiles, []); assert.equal(exists(id), true)
+})
+await check('an unknown business is a 404 and storage is untouched', async () => {
+  removedFiles.length = 0
+  const r = await deleteBusinessAndLogo(randomUUID(), logoDeps(asAdmin))
+  assert.equal(r.ok, false); assert.equal(r.status, 404); assert.deepEqual(removedFiles, [])
+})
+await check('SECURITY: a business whose logo_url points at ANOTHER user\'s file is deleted but that file is left alone', async () => {
+  removedFiles.length = 0
+  const victim = randomUUID(); const attacker = randomUUID()
+  const id = seedBiz('logo-evil', attacker, logoUrl(`${victim}-1760000000002.jpg`))
+  const r = await deleteBusinessAndLogo(id, logoDeps(asAdmin))
+  assert.equal(r.ok, true); assert.equal(r.logo, 'skipped')
+  assert.deepEqual(removedFiles, []); assert.equal(exists(id), false)
+})
+await check('a logo URL copied onto another business can\'t get the original file deleted; the real owner\'s own deletion still cleans it up', async () => {
+  removedFiles.length = 0
+  const owner = randomUUID(); const copier = randomUUID(); const url = logoUrl(`${owner}-1760000000003.jpg`)
+  const original = seedBiz('logo-original', owner, url); const copy = seedBiz('logo-copy', copier, url)
+  // Deleting the business that merely copied the URL: not its owner's file -> never touched.
+  const first = await deleteBusinessAndLogo(copy, logoDeps(asAdmin))
+  assert.equal(first.ok, true); assert.equal(first.logo, 'skipped'); assert.deepEqual(removedFiles, [])
+  // Deleting the real owner's business afterwards: no other references remain -> file removed.
+  const second = await deleteBusinessAndLogo(original, logoDeps(asAdmin))
+  assert.equal(second.ok, true); assert.equal(second.logo, 'removed')
+  assert.deepEqual(removedFiles, [`${owner}-1760000000003.jpg`])
+})
+await check('while another business still references the owner\'s file, it is kept', async () => {
+  removedFiles.length = 0
+  const owner = randomUUID(); const copier = randomUUID(); const url = logoUrl(`${owner}-1760000000004.jpg`)
+  const original = seedBiz('logo-original-2', owner, url); const copy = seedBiz('logo-copy-2', copier, url)
+  const r = await deleteBusinessAndLogo(original, logoDeps(asAdmin))
+  assert.equal(r.ok, true); assert.equal(r.logo, 'skipped', 'the copy still points at it')
+  assert.deepEqual(removedFiles, []); assert.equal(exists(copy), true)
+})
+await check('business with no logo: deleted, nothing to clean up', async () => {
+  removedFiles.length = 0
+  const id = seedBiz('logo-none', randomUUID(), null)
+  const r = await deleteBusinessAndLogo(id, logoDeps(asAdmin))
+  assert.equal(r.ok, true); assert.equal(r.logo, 'none'); assert.deepEqual(removedFiles, [])
 })
 
 console.log('Review moderation (what the admin handlers rely on)')

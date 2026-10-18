@@ -24,6 +24,7 @@ import {
 } from '@/lib/inventory-api'
 import { StockActionModal, StockSettingsModal, TrackStockModal, type StockAction } from './InventoryDialogs'
 import InventoryIntro from './InventoryIntro'
+import { isAlreadyUsingInventory } from '@/lib/feature-announcements'
 
 const STATUS_TONE: Record<StockStatus, Tone> = {
   in_stock: 'success',
@@ -93,6 +94,13 @@ export default function InventoryPanel({
 
   const refresh = () => setReloadKey((n) => n + 1)
 
+  // The intro is for people who haven't started tracking stock: if the business
+  // already tracks something, don't show it and record it as dismissed.
+  const alreadyUsing = isAlreadyUsingInventory(result?.overview?.summary.tracked)
+  useEffect(() => {
+    if (showIntro && alreadyUsing) onDismissIntro?.()
+  }, [showIntro, alreadyUsing, onDismissIntro])
+
   const loadMore = async () => {
     if (!result?.overview || loadingMore) return
     setLoadingMore(true)
@@ -160,7 +168,7 @@ export default function InventoryPanel({
 
   return (
     <div className="space-y-4">
-      {showIntro && onDismissIntro && <InventoryIntro onDismiss={onDismissIntro} />}
+      {showIntro && onDismissIntro && !alreadyUsing && <InventoryIntro onDismiss={onDismissIntro} />}
       {notice && <Notice kind="success" onDismiss={() => setNotice(null)}>{notice}</Notice>}
 
       {/* Summary — real counts from the database; the tiles double as stock-status filters */}

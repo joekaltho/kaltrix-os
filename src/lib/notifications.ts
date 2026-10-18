@@ -28,7 +28,6 @@ export interface AppNotification {
 
 export const NOTIFICATION_COLUMNS = 'id, type, title, body, href, created_at, read_at'
 export const NOTIFICATION_PAGE_SIZE = 20
-export const NOTIFICATION_POLL_MS = 60_000
 
 // Same rule as the CHECK constraint on notifications.href: in-app paths only.
 // Re-checked here so that even a row that somehow bypassed the database rule

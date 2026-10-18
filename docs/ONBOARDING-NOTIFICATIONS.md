@@ -54,6 +54,11 @@ until dismissed. State is per browser + business in `localStorage`; nothing is
 stored server-side. To announce another feature, add an `Announcement` and pass
 `isNew` on its nav item.
 
+Anyone who already tracks at least one product is not shown the badge or the intro:
+the dashboard does a head-only count of `inventory_items` while the badge would
+show, and the Inventory tab re-checks when it loads. Either way it is recorded as
+seen/dismissed, so it stays gone even if they later stop tracking.
+
 ## Notifications
 
 Table `notifications`, written **only by database triggers**, so every code path
@@ -78,9 +83,25 @@ Not covered on purpose: bookings (owner-created; there is no public booking
 flow, so nothing inbound), overdue invoices (a time-based sweep like
 `notify_trials_ending` is the natural next addition).
 
-The bell polls every 60 s while the tab is visible and on focus. Supabase
-Realtime would make it instant but needs the table added to the
-`supabase_realtime` publication; not done.
+### How the bell stays current
+
+Migration `20261017100100_notifications_realtime` adds `notifications` to the
+`supabase_realtime` publication, so new rows (and reads made in another tab or
+device) are pushed to the open dashboard. Realtime applies the table's RLS per
+subscriber using their own JWT, so an owner only ever receives their own business's
+rows. The event is only a nudge: the hook re-reads (debounced 400 ms) rather than
+trusting the payload. Polling remains as the fallback: every 60 s with no live
+connection (migration not applied, websocket blocked, network drop) and every 5 min
+as a safety net while live, plus a refresh whenever the tab regains focus. The app
+works without the migration; it just polls.
+
+### Retention
+
+`prune_notifications()` runs daily (`prune-notifications`, 03:41 UTC): read
+notifications are deleted 30 days after being read, and anything is deleted at 180
+days. Unread notifications younger than 180 days are always kept. Pruning cannot
+re-create a notification (see the comment in the migration); `email_deliveries` is
+intentionally not pruned.
 
 ## Verified badge fix
 
@@ -104,7 +125,25 @@ user. `src/lib/admin-actions.ts` holds the "success only if the database
 confirmed" rule for both verify and delete. Review dismiss/uphold now also check
 their write counts instead of assuming success.
 
-Not changed: the logo file in Storage is not removed when a business is deleted.
+### Logo cleanup on delete
+
+Deleting a business now also removes its logo file. Storage has no delete policy for
+anyone, so this runs server-side: the page calls `DELETE /api/admin/businesses/<id>`,
+which runs the same `admin_delete_business()` with the **caller's own session** (the
+database still decides who is an admin) and only then, with the service role,
+removes the file. Rules (`src/lib/logo-storage.ts`, `src/lib/admin-delete.ts`):
+
+- the file is removed only after the database confirmed the delete; a refused or
+  failed delete never touches storage;
+- `logo_url` is owner-writable, so it is never trusted on its own: only a flat file
+  on this project's `logos` bucket named `<deleted owner's user id>-<timestamp>.<ext>`
+  is eligible, and only if no remaining business still references the same URL;
+- a storage failure never hides a successful delete: the admin sees "Deleted ..., but
+  its logo file could not be removed".
+
+Not covered: replacing a logo from the profile page still leaves the previous file
+behind, and files already orphaned before this change (production had one at the time
+of writing) stay until removed by hand.
 
 ## Welcome-email retry and Resend idempotency
 
