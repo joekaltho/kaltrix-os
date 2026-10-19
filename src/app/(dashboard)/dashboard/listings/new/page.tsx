@@ -1,12 +1,14 @@
 'use client'
 
 import Logo from '@/components/Logo'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import Link from 'next/link'
 import ListingCapGuard from '@/components/ListingCapGuard'
 import { useBusinessId } from '@/lib/business-context'
+import ListingImageField, { type ListingImageValue } from '@/components/ListingImageField'
+import { removeListingImageFile, uploadListingImage } from '@/lib/listing-image-client'
 
 const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
 const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
@@ -16,9 +18,13 @@ function NewListingForm() {
   const supabase = createClient()
   const businessId = useBusinessId()
   const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<'uploading' | 'saving'>('saving')
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ name: '', price: '', image_url: '', description: '' })
+  const [form, setForm] = useState({ name: '', price: '', description: '' })
+  const [image, setImage] = useState<ListingImageValue>({ file: null, remove: false })
+  // A ref, not state: two quick clicks can both run before `loading` re-renders.
+  const submitting = useRef(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -26,33 +32,48 @@ function NewListingForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting.current) return
+    submitting.current = true
     setLoading(true)
     setError('')
 
-    if (!businessId) {
-      setError('No business profile found.')
+    const fail = (message: string) => {
+      setError(message)
       setLoading(false)
-      return
+      submitting.current = false
     }
+
+    if (!businessId) return fail('No business profile found.')
 
     // Free now (cached session read, not a network call) -- kept as the
     // same defensive "session vanished mid-form" guard the original had.
     const { data: { user } } = await getSessionUser(supabase)
     if (!user) { router.push('/login'); return }
 
+    // Upload first. If it fails, nothing is saved: no listing, and no image
+    // reference that points at a file which does not exist.
+    let image_url: string | null = null
+    if (image.file) {
+      setStage('uploading')
+      const uploaded = await uploadListingImage(image.file)
+      if (!uploaded.ok) return fail(`Image upload failed: ${uploaded.error} Your listing was not saved.`)
+      image_url = uploaded.url
+    }
+
+    setStage('saving')
     const { error: insertError } = await supabase.from('listings').insert({
       business_id: businessId,
       name: form.name,
       price: form.price ? parseInt(form.price, 10) : 0,
-      image_url: form.image_url || null,
+      image_url,
       description: form.description || null,
       is_active: true,
     })
 
     if (insertError) {
-      setError(`Could not save listing: ${insertError.message}`)
-      setLoading(false)
-      return
+      // The file was uploaded but nothing references it: take it back down.
+      await removeListingImageFile(image_url)
+      return fail(`Could not save listing: ${insertError.message}`)
     }
 
     setSuccess(true)
@@ -110,10 +131,7 @@ function NewListingForm() {
               <label className={labelClass}>Price (₦)</label>
               <input type="number" name="price" value={form.price} onChange={handleChange} min="0" placeholder="5000" className={inputClass} />
             </div>
-            <div>
-              <label className={labelClass}>Image URL</label>
-              <input type="url" name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://..." className={inputClass} />
-            </div>
+            <ListingImageField currentUrl={null} value={image} onChange={setImage} disabled={loading} />
             <div>
               <label className={labelClass}>Description</label>
               <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Describe this item or service..." className={inputClass + ' resize-none'} />
@@ -122,7 +140,7 @@ function NewListingForm() {
 
           <button type="submit" disabled={loading} className="w-full gradient-brand text-white font-black py-4 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2">
             {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{stage === 'uploading' ? 'Uploading image...' : 'Saving...'}</>
             ) : 'Add Listing'}
           </button>
         </form>

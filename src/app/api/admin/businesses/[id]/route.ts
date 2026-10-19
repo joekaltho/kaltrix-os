@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { apiError, checkRateLimits, rateLimitResponse } from '@/lib/api-guard'
 import { deleteBusinessAndLogo } from '@/lib/admin-delete'
 import { LOGO_BUCKET, logoObjectName } from '@/lib/logo-storage'
+import { LISTING_IMAGE_BUCKET } from '@/lib/listing-image'
+import { cleanUpBusinessListingImages } from '@/lib/listing-image-cleanup'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -35,11 +37,13 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
     const limit = await checkRateLimits(service, [{ key: `admin-delete:${user.id}`, max: 30, windowSeconds: 3600 }])
     if (limit.status !== 'ok') return rateLimitResponse(limit)
 
+    let ownerUserId: string | null = null
     const result = await deleteBusinessAndLogo(id, {
       logoNameFor: (logoUrl, ownerId) => logoObjectName(logoUrl, ownerId, process.env.NEXT_PUBLIC_SUPABASE_URL),
       readBusiness: async (businessId) => {
         const { data, error } = await supabase.from('businesses').select('user_id, logo_url').eq('id', businessId).maybeSingle()
         if (error) throw new Error(error.code)
+        ownerUserId = data?.user_id ?? null
         return data
       },
       callDelete: async (businessId) => {
@@ -62,7 +66,30 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
     })
 
     if (!result.ok) return apiError(result.message, result.status)
-    return NextResponse.json({ id: result.id, business_name: result.business_name, logo: result.logo })
+
+    // The business and its listings are gone; now clear out the listing image files.
+    // Best-effort and reported, never a reason to fail a delete that already succeeded.
+    const bucket = service.storage.from(LISTING_IMAGE_BUCKET)
+    const listing_images = await cleanUpBusinessListingImages(ownerUserId, id, {
+      listFiles: async (folder) => {
+        const { data, error } = await bucket.list(folder, { limit: 1000 })
+        if (error) throw new Error(error.message)
+        return (data ?? []).map((o) => o.name)
+      },
+      publicUrlFor: (objectPath) => bucket.getPublicUrl(objectPath).data.publicUrl,
+      referencedUrls: async (urls) => {
+        const { data, error } = await service.from('listings').select('image_url').in('image_url', urls)
+        if (error) throw new Error(error.code)
+        return (data ?? []).map((r) => r.image_url as string)
+      },
+      removeFiles: async (paths) => {
+        const { error } = await bucket.remove(paths)
+        if (error) console.error('Admin delete: listing image removal failed:', error.message)
+        return { error: error ? error.message : null }
+      },
+    })
+
+    return NextResponse.json({ id: result.id, business_name: result.business_name, logo: result.logo, listing_images })
   } catch (err) {
     console.error('Admin delete error:', err instanceof Error ? err.message : err)
     return apiError('Something went wrong', 500)

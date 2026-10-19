@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getListingLimit, type Plan } from '@/lib/check-plan'
 import type { Listing } from '@/types'
+import ListingImageField, { type ListingImageValue } from '@/components/ListingImageField'
+import { removeListingImageFile, uploadListingImage } from '@/lib/listing-image-client'
 
 const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
 const labelClass = 'text-xs font-bold text-inkMid uppercase tracking-wider mb-1.5 block'
@@ -20,6 +22,7 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Listing | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [actionError, setActionError] = useState('')
 
   const limit = getListingLimit(plan)
   const atCap = limit !== null && listings.length >= limit
@@ -40,8 +43,16 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this listing? This cannot be undone.')) return
-    await supabase.from('listings').delete().eq('id', id)
+    setActionError('')
+    const imageUrl = listings.find((l) => l.id === id)?.image_url
+    const { error: deleteError } = await supabase.from('listings').delete().eq('id', id)
+    if (deleteError) {
+      setActionError(`Could not delete the listing: ${deleteError.message}`)
+      return
+    }
     setListings(listings.filter((l) => l.id !== id))
+    // Only after the row is gone; the server skips anything still referenced.
+    void removeListingImageFile(imageUrl)
   }
 
   if (loading) {
@@ -70,6 +81,10 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
           </Link>
         )}
       </div>
+
+      {actionError && (
+        <div className="bg-dangerBg border border-dangerBorder text-danger rounded-xl p-3 text-sm">{actionError}</div>
+      )}
 
       {editing && (
         <EditListingModal
@@ -125,14 +140,17 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
 function EditListingModal({ listing, onClose, onSaved }: { listing: Listing; onClose: () => void; onSaved: () => void }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<'uploading' | 'saving'>('saving')
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: listing.name,
     price: listing.price != null ? String(listing.price) : '',
-    image_url: listing.image_url ?? '',
     description: listing.description ?? '',
     is_active: listing.is_active,
   })
+  // The saved image is left exactly as it is unless the owner replaces or removes it.
+  const [image, setImage] = useState<ListingImageValue>({ file: null, remove: false })
+  const submitting = useRef(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = e.target
@@ -142,22 +160,47 @@ function EditListingModal({ listing, onClose, onSaved }: { listing: Listing; onC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting.current) return
+    submitting.current = true
     setLoading(true)
     setError('')
 
-    const { error: updateError } = await supabase.from('listings').update({
+    const fail = (message: string) => {
+      setError(message)
+      setLoading(false)
+      submitting.current = false
+    }
+
+    // Upload first. If it fails, nothing is saved and the listing keeps its old image.
+    let uploadedUrl: string | null = null
+    if (image.file) {
+      setStage('uploading')
+      const uploaded = await uploadListingImage(image.file)
+      if (!uploaded.ok) return fail(`Image upload failed: ${uploaded.error} Your changes were not saved.`)
+      uploadedUrl = uploaded.url
+    }
+
+    setStage('saving')
+    const changes: Record<string, unknown> = {
       name: form.name,
       price: form.price ? parseInt(form.price, 10) : 0,
-      image_url: form.image_url || null,
       description: form.description || null,
       is_active: form.is_active,
-    }).eq('id', listing.id)
+    }
+    // image_url is only part of the update when the owner actually changed it.
+    if (uploadedUrl) changes.image_url = uploadedUrl
+    else if (image.remove) changes.image_url = null
+
+    const { error: updateError } = await supabase.from('listings').update(changes).eq('id', listing.id)
 
     if (updateError) {
-      setError(`Could not save changes: ${updateError.message}`)
-      setLoading(false)
-      return
+      // The new file is not referenced by anything: take it back down.
+      await removeListingImageFile(uploadedUrl)
+      return fail(`Could not save changes: ${updateError.message}`)
     }
+
+    // The row is saved. Now the previous file (if it was one of ours) is unused.
+    if (uploadedUrl || image.remove) void removeListingImageFile(listing.image_url)
 
     onSaved()
   }
@@ -188,10 +231,7 @@ function EditListingModal({ listing, onClose, onSaved }: { listing: Listing; onC
             <label className={labelClass}>Price (₦)</label>
             <input type="number" name="price" value={form.price} onChange={handleChange} min="0" className={inputClass} />
           </div>
-          <div>
-            <label className={labelClass}>Image URL</label>
-            <input type="url" name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://..." className={inputClass} />
-          </div>
+          <ListingImageField currentUrl={listing.image_url ?? null} value={image} onChange={setImage} disabled={loading} />
           <div>
             <label className={labelClass}>Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={3} className={inputClass + ' resize-none'} />
@@ -203,7 +243,7 @@ function EditListingModal({ listing, onClose, onSaved }: { listing: Listing; onC
 
           <button type="submit" disabled={loading} className="w-full gradient-brand text-white font-black py-3 rounded-xl transition shadow-brand disabled:opacity-50 text-sm flex items-center justify-center gap-2">
             {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{stage === 'uploading' ? 'Uploading image...' : 'Saving...'}</>
             ) : 'Save Changes'}
           </button>
         </form>
