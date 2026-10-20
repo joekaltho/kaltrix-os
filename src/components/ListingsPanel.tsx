@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getListingLimit, type Plan } from '@/lib/check-plan'
 import type { Listing } from '@/types'
 import ListingImageField, { type ListingImageValue } from '@/components/ListingImageField'
+import PanelSkeleton from '@/components/dashboard/PanelSkeleton'
 import { removeListingImageFile, uploadListingImage } from '@/lib/listing-image-client'
 
 const inputClass = 'w-full bg-ivory border border-border rounded-xl px-4 py-3 text-ink placeholder-inkFaint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition text-sm'
@@ -56,11 +57,7 @@ export default function ListingsPanel({ businessId, plan }: ListingsPanelProps) 
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <span className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <PanelSkeleton variant="cards" label="Loading listings" />
   }
 
   return (

@@ -8,6 +8,7 @@ import { getSessionUser } from '@/lib/supabase/client'
 import { getCurrentBusinessAndPlan, getListingLimit } from '@/lib/check-plan'
 import { readIdentityCache } from '@/lib/session-cache'
 import { BusinessProvider } from '@/lib/business-context'
+import FormPageSkeleton from '@/components/ui/FormPageSkeleton'
 
 interface ListingCapGuardProps {
   children: React.ReactNode
@@ -75,12 +76,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
 
   if (allowed === null) {
     return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-inkFaint text-sm">Checking access...</p>
-        </div>
-      </div>
+      <FormPageSkeleton frame="classic" />
     )
   }
 
@@ -90,14 +86,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
 export default function ListingCapGuard(props: ListingCapGuardProps) {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-inkFaint text-sm">Loading...</p>
-          </div>
-        </div>
-      }
+      fallback={<FormPageSkeleton frame="classic" />}
     >
       <ListingCapGuardContent {...props} />
     </Suspense>

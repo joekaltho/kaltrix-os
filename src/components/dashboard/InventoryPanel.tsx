@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Notice from '@/components/ui/Notice'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { formatDateTime } from '@/lib/format'
+import PanelSkeleton from '@/components/dashboard/PanelSkeleton'
 import {
   MOVEMENT_LABELS,
   STATUS_LABELS,
@@ -128,11 +129,7 @@ export default function InventoryPanel({
 
   // ── First load / hard error ───────────────────────────────────────────────────────────────────────
   if (!result) {
-    return (
-      <div className="flex justify-center py-16" role="status" aria-label="Loading inventory">
-        <span className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-      </div>
-    )
+    return <PanelSkeleton variant="stats" label="Loading inventory" />
   }
 
   if (result.error !== null) {

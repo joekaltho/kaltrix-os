@@ -7,6 +7,7 @@ import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { getCurrentBusinessAndPlan, hasFeature } from '@/lib/check-plan'
 import { readIdentityCache } from '@/lib/session-cache'
 import { BusinessProvider } from '@/lib/business-context'
+import FormPageSkeleton from '@/components/ui/FormPageSkeleton'
 
 interface PremiumGuardProps {
   children: React.ReactNode
@@ -38,7 +39,7 @@ function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgra
       if (hasFeature(plan, feature)) {
         setAllowed(true)
       } else {
-        setAllowed(null) // back to the "Checking access" screen while we redirect
+        setAllowed(null) // back to the loading skeleton while we redirect
         const returnUrl = window.location.pathname
         router.push(`${redirectTo}?required=${feature}&returnUrl=${encodeURIComponent(returnUrl)}`)
       }
@@ -49,12 +50,7 @@ function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgra
 
   if (allowed === null) {
     return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-inkFaint text-sm">Checking access...</p>
-        </div>
-      </div>
+      <FormPageSkeleton />
     )
   }
 
@@ -64,14 +60,7 @@ function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgra
 export default function PremiumGuard(props: PremiumGuardProps) {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-inkFaint text-sm">Loading...</p>
-          </div>
-        </div>
-      }
+      fallback={<FormPageSkeleton />}
     >
       <PremiumGuardContent {...props} />
     </Suspense>

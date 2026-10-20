@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic'
 import Logo from '@/components/Logo'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import nextDynamic from 'next/dynamic'
+import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton'
+import PanelSkeleton from '@/components/dashboard/PanelSkeleton'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Building2 } from 'lucide-react'
@@ -43,24 +45,18 @@ const createdMessages: Record<string, string> = {
 }
 
 // Tabs other than Overview are code-split: their code (Inventory and its dialogs,
-// Listings, and Business Pulse with its charting library) is downloaded when the tab is
-// first opened, or shortly after the dashboard becomes idle, instead of blocking the
-// first render of the page everyone lands on.
-const PanelFallback = () => <div className="min-h-[320px]" aria-busy="true" />
-const ListingsPanel = nextDynamic(() => import('@/components/ListingsPanel'), { loading: PanelFallback })
-const InventoryPanel = nextDynamic(() => import('@/components/dashboard/InventoryPanel'), { loading: PanelFallback })
-const BusinessPulsePanel = nextDynamic(() => import('@/components/BusinessPulsePanel'), { loading: PanelFallback })
-
-function Loading() {
-  return (
-    <div className="min-h-screen bg-ivory flex items-center justify-center font-sans">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-inkFaint text-sm">Loading KaltrixOS...</p>
-      </div>
-    </div>
-  )
-}
+// Listings, and Business Pulse with its charting library) is downloaded the first time
+// the tab is opened instead of blocking the first render of the page everyone lands on.
+// While it downloads, the tab shows the same skeleton its data-loading state uses.
+const ListingsPanel = nextDynamic(() => import('@/components/ListingsPanel'), {
+  loading: () => <PanelSkeleton variant="cards" label="Loading listings" />,
+})
+const InventoryPanel = nextDynamic(() => import('@/components/dashboard/InventoryPanel'), {
+  loading: () => <PanelSkeleton variant="stats" label="Loading inventory" />,
+})
+const BusinessPulsePanel = nextDynamic(() => import('@/components/BusinessPulsePanel'), {
+  loading: () => <PanelSkeleton variant="stats" label="Loading business pulse" />,
+})
 
 function Dashboard() {
   const router = useRouter()
@@ -268,7 +264,7 @@ function Dashboard() {
     return () => { cancelled = true }
   }, [inventoryBadgeShowing, business, supabase, markInventorySeen, dismissInventoryIntro])
 
-  if (loading) return <Loading />
+  if (loading) return <DashboardSkeleton />
 
   if (loadError) {
     return (
@@ -459,7 +455,7 @@ function Dashboard() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <Dashboard />
     </Suspense>
   )

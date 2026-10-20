@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import type { Expense } from '@/types'
+import PanelSkeleton from '@/components/dashboard/PanelSkeleton'
 import {
   BusinessPulseData,
   formatNaira,
@@ -77,11 +78,7 @@ export default function BusinessPulsePanel({ businessId }: BusinessPulsePanelPro
   }
 
   if (loading && !pulse) {
-    return (
-      <div className="flex justify-center py-16">
-        <span className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <PanelSkeleton variant="stats" label="Loading business pulse" />
   }
 
   if (errorMsg) {

@@ -13,6 +13,7 @@ import Notice from '@/components/ui/Notice'
 import { industries } from '@/lib/industries'
 import { validateBankFields } from '@/lib/payment'
 import { clearDashboardCache } from '@/lib/session-cache'
+import FormPageSkeleton from '@/components/ui/FormPageSkeleton'
 import type { TrustSignal } from '@/lib/trust-score'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
@@ -224,11 +225,7 @@ export default function BusinessSettingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-ivory font-sans flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <FormPageSkeleton sections={3} />
   }
 
   if (loadError) {
