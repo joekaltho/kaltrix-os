@@ -4,18 +4,18 @@ export const dynamic = 'force-dynamic'
 
 import Logo from '@/components/Logo'
 import { Suspense, useCallback, useEffect, useState } from 'react'
+import nextDynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Building2 } from 'lucide-react'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { Business, Booking, Message, Invoice, Customer } from '@/types'
-import { getSubscriptionState, hasFeature, Plan, SubscriptionState } from '@/lib/check-plan'
+import { hasFeature, subscriptionStateFromRow, Plan, SubscriptionState } from '@/lib/check-plan'
+import { loadDashboardData, type DashboardData } from '@/lib/dashboard-data'
+import { clearDashboardCache, clearSessionCache, readDashboardCache, writeDashboardCache, writeIdentityCache } from '@/lib/session-cache'
 import { hasPaymentInfo, type PaymentDetails } from '@/lib/payment'
 import { siteOrigin } from '@/lib/format'
 import { isWithinWelcomeWindow, requestWelcomeEmail } from '@/lib/welcome-client'
-import ListingsPanel from '@/components/ListingsPanel'
-import InventoryPanel from '@/components/dashboard/InventoryPanel'
-import BusinessPulsePanel from '@/components/BusinessPulsePanel'
 import CopyLinkButton from '@/components/CopyLinkButton'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageHeader from '@/components/ui/PageHeader'
@@ -41,6 +41,15 @@ const createdMessages: Record<string, string> = {
   customer: 'Customer added.',
   business: 'Your business profile is live. Finish setting up below.',
 }
+
+// Tabs other than Overview are code-split: their code (Inventory and its dialogs,
+// Listings, and Business Pulse with its charting library) is downloaded when the tab is
+// first opened, or shortly after the dashboard becomes idle, instead of blocking the
+// first render of the page everyone lands on.
+const PanelFallback = () => <div className="min-h-[320px]" aria-busy="true" />
+const ListingsPanel = nextDynamic(() => import('@/components/ListingsPanel'), { loading: PanelFallback })
+const InventoryPanel = nextDynamic(() => import('@/components/dashboard/InventoryPanel'), { loading: PanelFallback })
+const BusinessPulsePanel = nextDynamic(() => import('@/components/BusinessPulsePanel'), { loading: PanelFallback })
 
 function Loading() {
   return (
@@ -88,82 +97,65 @@ function Dashboard() {
   const tabParam = searchParams.get('tab')
   const requestedTab: Tab = isTab(tabParam) ? tabParam : 'overview'
 
+  const applyData = useCallback((d: DashboardData) => {
+    setUserName(d.userName)
+    setBusiness(d.business)
+    setBank(d.bank)
+    setSubscription(d.subscription)
+    setPlan(d.plan)
+    setMessages(d.messages)
+    setBookings(d.bookings)
+    setCustomers(d.customers)
+    setInvoices(d.invoices)
+  }, [])
+
+  // After a create/upgrade redirect the cached copy is known to be out of date.
+  const [skipCache] = useState(() => searchParams.get('created') !== null || searchParams.get('upgraded') === 'true')
+
   useEffect(() => {
-    // Perf note (Sep 2026 platform-wide performance audit): this used to be
-    // 8 fully sequential round trips (session -> profile -> business ->
-    // subscription -> bookings -> customers -> invoices -> messages), each
-    // waiting on the last even though most don't depend on each other. That
-    // chain is the main reason dashboard load (and anything that redirects
-    // here, like login) felt slow. Same data, same gating logic, same
-    // fallback behavior -- just batched into parallel waves where the data
-    // actually has no dependency on the previous step.
+    // Perf note (Oct 2026): the load used to be three sequential browser -> Supabase
+    // round trips (profile+business, then subscription+messages+payment details, then
+    // bookings+customers+invoices) before any content could show. It is now one (see
+    // lib/dashboard-data.ts), and coming back from another dashboard page paints the
+    // last-known data immediately while that single request re-validates it. The
+    // cache is in-memory only, per signed-in user (see lib/session-cache.ts).
+    let cancelled = false
     const fetchData = async () => {
       setLoadError('')
+      let showedCache = false
       try {
         const { data: { user } } = await getSessionUser(supabase)
         if (!user) { router.push('/login'); return }
 
-        // profile and business both only depend on user.id, not on each other.
-        const [{ data: profile }, { data: businessData }] = await Promise.all([
-          supabase.from('profiles').select('name, role').eq('id', user.id).single(),
-          supabase.from('businesses').select('*').eq('user_id', user.id).single(),
-        ])
-
-        if (profile) {
-          setUserName(profile.name)
-          if (profile.role === 'admin') { router.push('/admin'); return }
+        const cached = skipCache ? null : readDashboardCache<DashboardData>(user.id)
+        if (cached && !cancelled) {
+          applyData(cached)
+          setLoading(false)
+          showedCache = true
         }
 
-        if (businessData) {
-          setBusiness(businessData)
+        const result = await loadDashboardData(supabase, user.id, { subscriptionStateFromRow, hasFeature })
+        if (cancelled) return
+        if (result.status === 'admin') { router.push('/admin'); return }
 
-          // Retry a welcome email that failed earlier (provider outage, key not
-          // configured yet). Server-side this is a no-op unless one is actually
-          // pending, so it can't resend or backfill anything.
-          if (isWithinWelcomeWindow(businessData.created_at)) requestWelcomeEmail()
+        applyData(result.data)
+        writeDashboardCache(user.id, result.data)
+        writeIdentityCache({ userId: user.id, businessId: result.data.business?.id ?? null, plan: result.data.plan })
 
-          // messages have no plan gating, so they can load alongside the
-          // subscription lookup instead of waiting on it. Payment details
-          // (owner-only table) ride along; a failed lookup just means "not set".
-          const [subState, { data: messagesData }, { data: bankData }] = await Promise.all([
-            getSubscriptionState(businessData.id),
-            supabase.from('messages').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false }),
-            supabase.from('business_payment_details').select('bank_name, account_name, account_number, payment_instructions').eq('business_id', businessData.id).maybeSingle(),
-          ])
-          setSubscription(subState)
-          setPlan(subState.plan)
-          setMessages(messagesData || [])
-          setBank(bankData ?? null)
-
-          // bookings/customers/invoices only need to know the plan (for
-          // gating) -- once we have it, none of the three depend on each
-          // other, so fetch whichever are enabled together.
-          const [bookingsRes, customersRes, invoicesRes] = await Promise.all([
-            hasFeature(subState.plan, 'bookings')
-              ? supabase.from('bookings').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-              : Promise.resolve({ data: null }),
-            hasFeature(subState.plan, 'crm')
-              ? supabase.from('customers').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-              : Promise.resolve({ data: null }),
-            hasFeature(subState.plan, 'invoices')
-              ? supabase.from('invoices').select('*').eq('business_id', businessData.id).order('created_at', { ascending: false })
-              : Promise.resolve({ data: null }),
-          ])
-          if (hasFeature(subState.plan, 'bookings')) setBookings(bookingsRes.data || [])
-          if (hasFeature(subState.plan, 'crm')) setCustomers(customersRes.data || [])
-          if (hasFeature(subState.plan, 'invoices')) setInvoices(invoicesRes.data || [])
-        }
+        // Retry a welcome email that failed earlier (provider outage, key not
+        // configured yet). Server-side this is a no-op unless one is actually
+        // pending, so it can't resend or backfill anything.
+        if (result.data.business && isWithinWelcomeWindow(result.data.business.created_at)) requestWelcomeEmail()
       } catch {
-        // A thrown network/fetch failure used to leave `loading` stuck at
-        // true forever -- an infinite spinner with no explanation and no
-        // way forward. Real risk given the latency/reliability profile
-        // this app runs under (see the P0 performance work). Surface it
-        // instead, with a retry.
-        setLoadError('Could not load your dashboard. Check your connection and try again.')
+        // A thrown network/fetch failure used to leave `loading` stuck at true
+        // forever. Surface it with a retry -- unless we are already showing
+        // the last-known data, which is better than an error screen.
+        if (!showedCache) setLoadError('Could not load your dashboard. Check your connection and try again.')
       }
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     }
     fetchData()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -189,6 +181,7 @@ function Dashboard() {
   }, [])
 
   const handleSignOut = async () => {
+    clearSessionCache()
     await supabase.auth.signOut()
     router.push('/login')
   }
@@ -198,6 +191,7 @@ function Dashboard() {
   // it had worked until the next refresh.
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
     const previous = bookings
+    clearDashboardCache()
     setBookings((bs) => bs.map((b) => (b.id === id ? { ...b, status } : b)))
     const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
     if (error) {
@@ -208,6 +202,7 @@ function Dashboard() {
 
   const updateInvoiceStatus = async (id: string, status: Invoice['status']) => {
     const previous = invoices
+    clearDashboardCache()
     setInvoices((is) => is.map((i) => (i.id === id ? { ...i, status } : i)))
     const { error } = await supabase.from('invoices').update({ status }).eq('id', id)
     if (error) {
@@ -218,6 +213,7 @@ function Dashboard() {
 
   const markMessageRead = async (id: string) => {
     const previous = messages
+    clearDashboardCache()
     setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, is_read: true } : m)))
     const { error } = await supabase.from('messages').update({ is_read: true }).eq('id', id)
     if (error) {

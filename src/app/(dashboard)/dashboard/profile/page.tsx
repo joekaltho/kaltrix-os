@@ -12,6 +12,7 @@ import { SelectField, TextAreaField, TextField } from '@/components/ui/Field'
 import Notice from '@/components/ui/Notice'
 import { industries } from '@/lib/industries'
 import { validateBankFields } from '@/lib/payment'
+import { clearDashboardCache } from '@/lib/session-cache'
 import type { TrustSignal } from '@/lib/trust-score'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
@@ -210,6 +211,8 @@ export default function BusinessSettingsPage() {
     setInitial(next)
     setLogoFile(null)
     setSaving(false)
+    // The dashboard's cached copy (business name, logo, payment details) is now stale.
+    clearDashboardCache()
 
     if (bankWriteError) {
       setError(`Your profile was saved, but the payment details were not: ${bankWriteError.message}`)

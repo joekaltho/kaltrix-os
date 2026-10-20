@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { resolveEffectivePlan } from '@/lib/check-plan'
+import { clearSessionCache } from '@/lib/session-cache'
 import { adminDeleteBusiness, adminSetBusinessVerified, type RpcCall } from '@/lib/admin-actions'
 import Link from 'next/link'
 
@@ -119,6 +120,7 @@ export default function AdminPage() {
   }, [])
 
   const handleSignOut = async () => {
+    clearSessionCache()
     await supabase.auth.signOut()
     router.push('/login')
   }

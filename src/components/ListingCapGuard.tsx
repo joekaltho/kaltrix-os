@@ -4,7 +4,9 @@ import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getSessionUser } from '@/lib/supabase/client'
 import { getCurrentBusinessAndPlan, getListingLimit } from '@/lib/check-plan'
+import { readIdentityCache } from '@/lib/session-cache'
 import { BusinessProvider } from '@/lib/business-context'
 
 interface ListingCapGuardProps {
@@ -19,8 +21,26 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
   const [businessId, setBusinessId] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+    const countListings = (id: string) =>
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('business_id', id)
+
     const checkAccess = async () => {
-      const { userId, businessId, plan } = await getCurrentBusinessAndPlan()
+      // Speed-ups that never loosen the check:
+      //  * a plan with no listing cap (per the last-known plan) shows the page at once;
+      //    the real plan check below still runs and can still redirect;
+      //  * the cap count starts in parallel with the plan lookup, keyed by the
+      //    business id remembered for this same signed-in user (RLS still scopes it).
+      const { data: { user } } = await getSessionUser(supabase)
+      const cached = readIdentityCache(user?.id)
+      if (cached && getListingLimit(cached.plan) === null && !cancelled) {
+        setBusinessId(cached.businessId)
+        setAllowed(true)
+      }
+      const earlyCount = cached?.businessId ? countListings(cached.businessId) : null
+
+      const [{ userId, businessId, plan }, early] = await Promise.all([getCurrentBusinessAndPlan(), earlyCount])
+      if (cancelled) return
       setBusinessId(businessId)
       const limit = getListingLimit(plan)
 
@@ -38,12 +58,11 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
         return
       }
 
-      const { count } = await supabase
-        .from('listings')
-        .select('id', { count: 'exact', head: true })
-        .eq('business_id', businessId)
+      const { count } = early && cached?.businessId === businessId ? early : await countListings(businessId)
+      if (cancelled) return
 
       if ((count ?? 0) >= limit) {
+        setAllowed(null)
         const returnUrl = window.location.pathname
         router.push(`${redirectTo}?required=listings&returnUrl=${encodeURIComponent(returnUrl)}`)
       } else {
@@ -51,6 +70,7 @@ function ListingCapGuardContent({ children, redirectTo = '/dashboard/upgrade' }:
       }
     }
     checkAccess()
+    return () => { cancelled = true }
   }, [redirectTo, router])
 
   if (allowed === null) {

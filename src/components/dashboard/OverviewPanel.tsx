@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
 import { CalendarDays, CheckCircle2, ChevronRight, Circle, FileText, Inbox } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Booking, Business, Customer, Invoice, Message } from '@/types'
@@ -16,6 +16,13 @@ import { ButtonLink } from '@/components/ui/Button'
 import type { Tab } from './nav'
 
 const card = 'rounded-xl border border-border bg-surface'
+
+// Loaded on demand: pulls in the charting library, which is most of the dashboard's JS.
+// The placeholder is exactly the chart's height (160px) so nothing shifts when it arrives.
+const RevenueChart = dynamic(() => import('./RevenueChart'), {
+  ssr: false,
+  loading: () => <div className="h-[160px]" aria-hidden />,
+})
 
 interface Props {
   business: Business
@@ -260,25 +267,7 @@ export default function OverviewPanel({ business, plan, bank, bookings, messages
       {showChart && (
         <section className={`${card} p-5`} aria-labelledby="revenue-title">
           <h2 id="revenue-title" className="mb-4 text-sm font-semibold">Revenue from paid invoices</h2>
-          <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={paid.map((i) => ({ date: formatDate(i.created_at).replace(/ \d{4}$/, ''), revenue: i.total }))}>
-              <defs>
-                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" stroke="var(--color-border)" tick={{ fill: 'var(--color-inkFaint)', fontSize: 11 }} />
-              <YAxis stroke="var(--color-border)" tick={{ fill: 'var(--color-inkFaint)', fontSize: 11 }} tickFormatter={(v: number) => (v >= 1000 ? `${v / 1000}k` : String(v))} />
-              <Tooltip
-                formatter={(v) => [formatNaira(Number(v)), 'Revenue']}
-                contentStyle={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-ink)' }}
-                labelStyle={{ color: 'var(--color-inkMid)', fontSize: 11 }}
-                itemStyle={{ color: 'var(--color-brandText)', fontSize: 11 }}
-              />
-              <Area type="monotone" dataKey="revenue" stroke="#22c55e" fill="url(#rev)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <RevenueChart data={paid.map((i) => ({ date: formatDate(i.created_at).replace(/ \d{4}$/, ''), revenue: i.total }))} />
         </section>
       )}
     </div>

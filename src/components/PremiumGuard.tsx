@@ -3,7 +3,9 @@
 import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { getCurrentBusinessAndPlan, hasFeature } from '@/lib/check-plan'
+import { readIdentityCache } from '@/lib/session-cache'
 import { BusinessProvider } from '@/lib/business-context'
 
 interface PremiumGuardProps {
@@ -18,17 +20,31 @@ function PremiumGuardContent({ children, feature, redirectTo = '/dashboard/upgra
   const [businessId, setBusinessId] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const checkAccess = async () => {
+      // Fast path: if this session's last-known plan already includes the feature,
+      // show the page now instead of waiting on the network. The real check below
+      // still runs every time, and a denial sends the user away exactly as before.
+      const { data: { user } } = await getSessionUser(createClient())
+      const cached = readIdentityCache(user?.id)
+      if (cached && hasFeature(cached.plan, feature) && !cancelled) {
+        setBusinessId(cached.businessId)
+        setAllowed(true)
+      }
+
       const { businessId, plan } = await getCurrentBusinessAndPlan()
+      if (cancelled) return
       setBusinessId(businessId)
       if (hasFeature(plan, feature)) {
         setAllowed(true)
       } else {
+        setAllowed(null) // back to the "Checking access" screen while we redirect
         const returnUrl = window.location.pathname
         router.push(`${redirectTo}?required=${feature}&returnUrl=${encodeURIComponent(returnUrl)}`)
       }
     }
     checkAccess()
+    return () => { cancelled = true }
   }, [feature, redirectTo, router])
 
   if (allowed === null) {
