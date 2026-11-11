@@ -147,3 +147,13 @@
 /* Native controls (scrollbars, date/time pickers, select popups) follow the theme. */
 :root { color-scheme: light; }
 .dark { color-scheme: dark; }
+
+/* Landing page motion */
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ring { from { stroke-dashoffset: 264; } to { stroke-dashoffset: 40; } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.float { animation: float-y 6s ease-in-out infinite; }
+.marquee { animation: marquee 40s linear infinite; }
+.spot { background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), rgba(34, 197, 94, 0.14), transparent 60%); }

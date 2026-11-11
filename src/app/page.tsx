@@ -6,6 +6,7 @@ import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { PLAN_PRICES_NGN, monthlyEquivNgn, type BillingPeriod } from '@/lib/plans'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
+import { ScrollBar, CountUp, Spotlight, Bars, HeroVisual } from '@/components/landing/Motion'
 
 const PRICING_PLANS = [
   {
@@ -201,6 +202,9 @@ const FadeUp = ({ children, delay = 0, className = '' }: { children: React.React
   )
 }
 
+const BTN = 'inline-flex items-center justify-center gap-2 font-black px-7 py-3.5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 text-sm sm:text-base'
+const MARQUEE = ['Public profile', 'TrustScore', 'Shop', 'Bookings', 'Invoices', 'Customer CRM', 'Inventory', 'Business Pulse', 'Alerts']
+
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [pricingBilling, setPricingBilling] = useState<BillingPeriod>('annual')
@@ -216,12 +220,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-ivory text-ink font-sans overflow-x-hidden">
 
-      {/* Animated background elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/5 blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-brand/5 blur-3xl" style={{ animationDelay: '3s' }} />
-      </div>
+      <ScrollBar />
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-surface/70">
@@ -256,113 +255,57 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 pb-12 sm:pb-20">
-        <div className="relative z-10 max-w-3xl">
-          <FadeUp delay={100}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-5 sm:mb-6">
-              Get Found.<br />
-              Get Trusted.<br />
-              <span className="relative">
-                <span className="text-brand relative z-10">Get Paid.</span>
-                <span className="absolute inset-0 bg-brand/10 blur-2xl -z-0 animate-pulse-slow" />
+      <section className="relative overflow-hidden">
+        <div aria-hidden className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle,rgba(34,197,94,0.22)_1px,transparent_1px)] [background-size:26px_26px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-bold bg-brandBg border border-brand/20 text-brandText px-3 py-1.5 rounded-full mb-6 [animation:rise_0.7s_ease-out_both]">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
+              New: Inventory and low-stock alerts
+            </span>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.02] tracking-tight mb-6">
+              <span className="block [animation:rise_0.8s_ease-out_0.1s_both]">Get Found.</span>
+              <span className="block [animation:rise_0.8s_ease-out_0.25s_both]">Get Trusted.</span>
+              <span className="block [animation:rise_0.8s_ease-out_0.4s_both]">
+                <span className="relative inline-block text-brand">
+                  Get Paid.
+                  <span aria-hidden className="absolute left-0 -bottom-1 h-1.5 w-full origin-left rounded-full bg-brand/30 [animation:sweep_1s_ease-out_1s_both]" />
+                </span>
               </span>
             </h1>
-          </FadeUp>
-
-          <FadeUp delay={200}>
-            <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 sm:mb-10">
+            <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 [animation:rise_0.8s_ease-out_0.55s_both]">
               The business operating system for African SMEs. A public profile and a TrustScore
               customers can check, plus bookings, invoices, CRM and inventory — in one dashboard.
             </p>
-          </FadeUp>
-
-          <FadeUp delay={300}>
-            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-5 [animation:rise_0.8s_ease-out_0.7s_both]">
               {isLoggedIn ? (
-                <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 gradient-brand text-white font-black px-6 sm:px-7 py-3.5 rounded-xl transition-all duration-300 hover:shadow-brandLg hover:-translate-y-1 hover:scale-105 text-sm sm:text-base group">
-                  Go to Dashboard
-                  <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </Link>
+                <Link href="/dashboard" className={`${BTN} gradient-brand text-white hover:shadow-brandLg`}>Go to Dashboard →</Link>
               ) : (
                 <>
-                  <Link href="/signup" className="inline-flex items-center justify-center gap-2 gradient-brand text-white font-black px-6 sm:px-7 py-3.5 rounded-xl transition-all duration-300 hover:shadow-brandLg hover:-translate-y-1 hover:scale-105 text-sm sm:text-base group">
-                    Get Started Free
-                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Link>
-                  <Link href="/discover" className="inline-flex items-center justify-center gap-2 bg-white border border-border hover:border-inkFaint hover:shadow-lift text-ink font-semibold px-6 sm:px-7 py-3.5 rounded-xl transition-all duration-300 hover:-translate-y-1 hover:scale-105 text-sm sm:text-base shadow-card group">
-                    Explore Businesses
-                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Link>
+                  <Link href="/signup" className={`${BTN} gradient-brand text-white hover:shadow-brandLg`}>Get Started Free →</Link>
+                  <Link href="/discover" className={`${BTN} bg-surface border border-border text-ink hover:border-inkFaint hover:shadow-lift shadow-card`}>Explore Businesses</Link>
                 </>
               )}
             </div>
-          </FadeUp>
-
-          <FadeUp delay={400}>
-            <p className="text-inkFaint text-sm flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
-              Free forever plan · No credit card required
-            </p>
-          </FadeUp>
-        </div>
-
-        {/* Dashboard preview */}
-        <FadeUp delay={500}>
-          <div className="mt-14 sm:mt-20 rounded-2xl border border-border bg-white shadow-lift overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.01] group">
-            <div className="bg-ivoryDim border-b border-border px-4 py-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
-              <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" style={{ animationDelay: '0.4s' }} />
-              <span className="text-inkFaint text-xs ml-2 font-medium">KaltrixOS — Dashboard</span>
-              <span className="ml-auto inline-flex items-center gap-1 text-warn text-[10px] font-bold uppercase tracking-wider bg-warnBg border border-warnBorder px-2 py-0.5 rounded-full">
-                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.743 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                Sample data
-              </span>
-            </div>
-            <div className="p-4 sm:p-6 overflow-x-auto">
-              <div className="min-w-[480px]">
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  {[
-                    { label: 'TrustScore', value: '85', sub: 'Excellent' },
-                    { label: "Today's Bookings", value: '7', sub: '+2 pending' },
-                    { label: 'Revenue', value: '₦420K', sub: 'This month' },
-                    { label: 'Messages', value: '3', sub: 'Unread' },
-                  ].map((stat) => (
-                    <div key={stat.label} className="bg-ivory rounded-xl p-3 sm:p-4 border border-border transition-all duration-300 hover:border-brand/20 hover:shadow-card hover:-translate-y-1 group">
-                      <p className="text-inkFaint text-xs mb-1.5 font-medium uppercase tracking-wider">{stat.label}</p>
-                      <p className="text-xl sm:text-2xl font-black text-ink">{stat.value}</p>
-                      <p className="text-brandText text-xs mt-1 font-semibold transition-transform duration-300 group-hover:translate-x-0.5">{stat.sub}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Verification', status: 'Verified' },
-                    { label: 'Discovery', status: 'Listed on Discover' },
-                    { label: 'Reviews', status: '4.8 · 42 reviews' },
-                  ].map((item) => (
-                    <div key={item.label} className="bg-ivory rounded-lg px-3 sm:px-4 py-3 border border-border transition-all duration-300 hover:border-brand/20 hover:-translate-y-0.5">
-                      <p className="text-inkFaint text-xs font-medium uppercase tracking-wider">{item.label}</p>
-                      <p className="text-ink text-sm font-black mt-0.5">{item.status}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <p className="text-inkFaint text-sm [animation:rise_0.8s_ease-out_0.85s_both]">Free forever plan · No credit card required</p>
           </div>
-          <p className="text-center text-inkFaint text-xs mt-3">
-            Illustrative preview — not a real business&apos;s dashboard or real platform statistics.
-          </p>
-        </FadeUp>
+          <div className="[animation:rise_1s_ease-out_0.4s_both]">
+            <HeroVisual />
+            <p className="text-center text-inkFaint text-xs mt-8">
+              Illustrative preview — not a real business or real platform statistics.
+            </p>
+          </div>
+        </div>
       </section>
+
+      {/* Capability strip */}
+      <div aria-hidden className="border-y border-border bg-surface/60 overflow-hidden py-4">
+        <div className="marquee flex w-max gap-10 text-xs sm:text-sm font-bold text-inkFaint uppercase tracking-widest">
+          {[0, 1].map((k) => MARQUEE.map((t) => (
+            <span key={`${k}-${t}`} className="flex items-center gap-10">{t}<span className="w-1.5 h-1.5 rounded-full bg-brand" /></span>
+          )))}
+        </div>
+      </div>
 
       {/* Stats band */}
       <section className="relative bg-inkStatic overflow-hidden">
@@ -370,13 +313,13 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
             {[
-              { number: '39M+', label: 'MSMEs in Nigeria' },
-              { number: '96.9%', label: 'of all Nigerian businesses' },
-              { number: '46.3%', label: 'share of national GDP' },
-              { number: '6.2%', label: 'share of exports' },
+              { to: 39, dec: 0, suffix: 'M+', label: 'MSMEs in Nigeria' },
+              { to: 96.9, dec: 1, suffix: '%', label: 'of all Nigerian businesses' },
+              { to: 46.3, dec: 1, suffix: '%', label: 'share of national GDP' },
+              { to: 6.2, dec: 1, suffix: '%', label: 'share of exports' },
             ].map((stat) => (
               <div key={stat.label} className="group transition-all duration-500 hover:scale-110">
-                <p className="text-3xl sm:text-4xl font-black text-brand mb-1">{stat.number}</p>
+                <p className="text-3xl sm:text-4xl font-black text-brand mb-1"><CountUp to={stat.to} decimals={stat.dec} suffix={stat.suffix} /></p>
                 <p className="text-white/40 text-xs sm:text-sm group-hover:text-white/60 transition-colors duration-300">{stat.label}</p>
               </div>
             ))}
@@ -494,13 +437,13 @@ export default function LandingPage() {
                 </div>
                 <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {group.items.map((item) => (
-                    <div key={item.title} className="bg-white rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20 group">
+                    <Spotlight key={item.title} className="bg-surface rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20">
                       <div className="w-9 h-9 bg-brandBg border border-brand/20 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:border-brand group-hover:shadow-brand">
                         {item.icon}
                       </div>
                       <h4 className="font-black text-sm sm:text-base mb-1.5">{item.title}</h4>
                       <p className="text-inkFaint text-xs sm:text-sm leading-relaxed">{item.desc}</p>
-                    </div>
+                    </Spotlight>
                   ))}
                 </div>
               </div>
@@ -545,6 +488,7 @@ export default function LandingPage() {
                     and customer growth from your real activity on KaltrixOS, and rolls it into one
                     Business Health Score — so you know how the business is actually doing, not just how it feels.
                   </p>
+                  <Bars />
                 </div>
               </div>
             </div>
