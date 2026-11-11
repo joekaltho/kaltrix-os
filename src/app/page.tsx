@@ -147,6 +147,24 @@ const productGroups = [
           </svg>
         ),
       },
+      {
+        title: 'Inventory',
+        desc: 'Track stock for your Shop products. Receive, issue and adjust, with a full history and low-stock levels you set.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Alerts',
+        desc: 'In-app notifications for new messages, new reviews and low stock, so nothing waits unseen.',
+        icon: (
+          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0" />
+          </svg>
+        ),
+      },
     ],
   },
 ]
@@ -185,7 +203,6 @@ const FadeUp = ({ children, delay = 0, className = '' }: { children: React.React
 
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [pricingBilling, setPricingBilling] = useState<BillingPeriod>('annual')
 
   useEffect(() => {
@@ -194,11 +211,6 @@ export default function LandingPage() {
       if (data.user) setIsLoggedIn(true)
     })
 
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   return (
@@ -209,13 +221,6 @@ export default function LandingPage() {
         <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/5 blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-brand/5 blur-3xl" style={{ animationDelay: '3s' }} />
-        <div 
-          className="absolute w-[600px] h-[600px] rounded-full bg-brand/5 blur-3xl transition-all duration-300 ease-out pointer-events-none"
-          style={{
-            left: `${mousePosition.x - 300}px`,
-            top: `${mousePosition.y - 300}px`,
-          }}
-        />
       </div>
 
       {/* Nav */}
@@ -225,6 +230,9 @@ export default function LandingPage() {
             <Logo size="md" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
+            {[['Features', '#features'], ['Pricing', '#pricing'], ['FAQ', '#faq']].map(([label, href]) => (
+              <a key={href} href={href} className="hidden md:block text-sm text-inkFaint hover:text-ink transition-colors px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg">{label}</a>
+            ))}
             <Link href="/discover" className="hidden md:block text-sm text-inkFaint hover:text-ink transition-all duration-300 px-3 py-1.5 font-medium hover:bg-ivoryDim rounded-lg hover:scale-105">
               Discover
             </Link>
@@ -263,9 +271,8 @@ export default function LandingPage() {
 
           <FadeUp delay={200}>
             <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 sm:mb-10">
-              KaltrixOS is the complete business operating system built for African SMEs. 
-              A public profile. A TrustScore. Bookings, invoices, CRM — all in one dashboard. 
-              Built in Nigeria. Built for Africa.
+              The business operating system for African SMEs. A public profile and a TrustScore
+              customers can check, plus bookings, invoices, CRM and inventory — in one dashboard.
             </p>
           </FadeUp>
 
@@ -442,7 +449,7 @@ export default function LandingPage() {
                 {[
                   'Public business profile, indexed and discoverable',
                   'TrustScore that builds credibility automatically',
-                  'Bookings, CRM and invoices in one dashboard',
+                  'Bookings, CRM, invoices and inventory in one dashboard',
                   'Analytics to understand your business',
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3 group transition-all duration-300 hover:translate-x-1">
@@ -461,7 +468,7 @@ export default function LandingPage() {
       </section>
 
       {/* Product overview */}
-      <section className="relative bg-ivoryDim border-y border-border overflow-hidden">
+      <section id="features" className="relative bg-ivoryDim border-y border-border overflow-hidden scroll-mt-16">
         <div className="absolute inset-0 bg-gradient-to-b from-ivory via-transparent to-ivory opacity-50" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
           <FadeUp>
@@ -545,8 +552,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* How it works */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+        <FadeUp>
+          <h2 className="text-3xl sm:text-4xl font-black text-center mb-10 sm:mb-14">Live in three steps</h2>
+        </FadeUp>
+        <div className="grid sm:grid-cols-3 gap-5">
+          {[
+            ['1', 'Create your profile', 'Sign up free and add your business details and logo. Your public page goes live.'],
+            ['2', 'Add what you sell', 'List products or services in your Shop and track stock if you hold inventory.'],
+            ['3', 'Run it from one place', 'Take bookings, send invoices, keep customer records and watch your Business Pulse.'],
+          ].map(([n, t, d], i) => (
+            <FadeUp key={n} delay={i * 100}>
+              <div className="bg-white rounded-2xl p-6 border border-border shadow-card h-full">
+                <span className="w-8 h-8 rounded-full gradient-brand text-white text-sm font-black flex items-center justify-center mb-4">{n}</span>
+                <h3 className="font-black mb-1.5">{t}</h3>
+                <p className="text-inkFaint text-sm leading-relaxed">{d}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 scroll-mt-16">
         <FadeUp>
           <div className="text-center mb-10 sm:mb-16">
             <p className="text-brandText text-xs font-black uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
@@ -648,6 +677,28 @@ export default function LandingPage() {
             </FadeUp>
             )
           })}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="relative max-w-3xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24 scroll-mt-16">
+        <h2 className="text-3xl sm:text-4xl font-black text-center mb-8 sm:mb-10">Questions, answered</h2>
+        <div className="space-y-3">
+          {[
+            ['Is it really free?', 'Yes. The Free plan costs nothing, has no time limit and needs no card. It includes your public profile, TrustScore, Discover listing, inbox and a 10-listing Shop.'],
+            ['What is TrustScore?', 'A score built from verification and real activity such as reviews and bookings. Businesses cannot set it themselves. Each business page explains how it is worked out.'],
+            ['Do I need a website?', 'No. Your KaltrixOS profile is a public page customers can find and share.'],
+            ['Can I pay monthly?', 'Yes. Growth and Pro can be paid monthly, every 6 months or yearly. Longer plans cost less per month.'],
+            ['Does KaltrixOS process customer payments?', 'No. You can put your bank details on every invoice, but payments are not collected through KaltrixOS.'],
+          ].map(([q, a]) => (
+            <details key={q} className="group bg-white rounded-xl border border-border shadow-card px-5 py-4">
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-4 font-bold text-sm sm:text-base">
+                {q}
+                <span className="text-brand text-xl leading-none transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="text-inkMid text-sm leading-relaxed mt-3">{a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
