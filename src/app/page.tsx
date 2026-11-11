@@ -257,27 +257,27 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div aria-hidden className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle,rgba(34,197,94,0.22)_1px,transparent_1px)] [background-size:26px_26px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-2 gap-14 lg:gap-10 items-center">
           <div>
             <span className="inline-flex items-center gap-2 text-xs font-bold bg-brandBg border border-brand/20 text-brandText px-3 py-1.5 rounded-full mb-6 [animation:rise_0.7s_ease-out_both]">
               <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow" />
               New: Inventory and low-stock alerts
             </span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.02] tracking-tight mb-6">
-              <span className="block [animation:rise_0.8s_ease-out_0.1s_both]">Get Found.</span>
-              <span className="block [animation:rise_0.8s_ease-out_0.25s_both]">Get Trusted.</span>
-              <span className="block [animation:rise_0.8s_ease-out_0.4s_both]">
+              <span className="block [animation:rise_0.8s_ease-out_0.05s_both]">Get Found.</span>
+              <span className="block [animation:rise_0.8s_ease-out_0.15s_both]">Get Trusted.</span>
+              <span className="block [animation:rise_0.8s_ease-out_0.25s_both]">
                 <span className="relative inline-block text-brand">
                   Get Paid.
-                  <span aria-hidden className="absolute left-0 -bottom-1 h-1.5 w-full origin-left rounded-full bg-brand/30 [animation:sweep_1s_ease-out_1s_both]" />
+                  <span aria-hidden className="absolute left-0 -bottom-1 h-1.5 w-full origin-left rounded-full bg-brand/30 [animation:sweep_1s_ease-out_0.8s_both]" />
                 </span>
               </span>
             </h1>
-            <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 [animation:rise_0.8s_ease-out_0.55s_both]">
+            <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 [animation:rise_0.8s_ease-out_0.35s_both]">
               The business operating system for African SMEs. A public profile and a TrustScore
               customers can check, plus bookings, invoices, CRM and inventory — in one dashboard.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 mb-5 [animation:rise_0.8s_ease-out_0.7s_both]">
+            <div className="flex flex-col sm:flex-row gap-3 mb-5 [animation:rise_0.8s_ease-out_0.45s_both]">
               {isLoggedIn ? (
                 <Link href="/dashboard" className={`${BTN} gradient-brand text-white hover:shadow-brandLg`}>Go to Dashboard →</Link>
               ) : (
@@ -287,7 +287,7 @@ export default function LandingPage() {
                 </>
               )}
             </div>
-            <p className="text-inkFaint text-sm [animation:rise_0.8s_ease-out_0.85s_both]">Free forever plan · No credit card required</p>
+            <p className="text-inkFaint text-sm [animation:rise_0.8s_ease-out_0.55s_both]">Free forever plan · No credit card required</p>
           </div>
           <div className="[animation:rise_1s_ease-out_0.4s_both]">
             <HeroVisual />
@@ -300,7 +300,7 @@ export default function LandingPage() {
 
       {/* Capability strip */}
       <div aria-hidden className="border-y border-border bg-surface/60 overflow-hidden py-4">
-        <div className="marquee flex w-max gap-10 text-xs sm:text-sm font-bold text-inkFaint uppercase tracking-widest">
+        <div className="marquee flex hover:[animation-play-state:paused] w-max gap-10 text-xs sm:text-sm font-bold text-inkFaint uppercase tracking-widest">
           {[0, 1].map((k) => MARQUEE.map((t) => (
             <span key={`${k}-${t}`} className="flex items-center gap-10">{t}<span className="w-1.5 h-1.5 rounded-full bg-brand" /></span>
           )))}
@@ -461,7 +461,7 @@ export default function LandingPage() {
                 <p className="text-inkFaint text-xs sm:text-sm">See what&apos;s actually happening, not just what you assume.</p>
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
-                <div className="bg-white rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20 group">
+                <Spotlight className="bg-surface rounded-2xl p-5 border border-border shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 hover:border-brand/20">
                   <div className="w-9 h-9 bg-brandBg border border-brand/20 rounded-xl flex items-center justify-center mb-3 transition-all duration-500 group-hover:scale-110 group-hover:border-brand group-hover:shadow-brand">
                     <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -471,9 +471,9 @@ export default function LandingPage() {
                   <p className="text-inkFaint text-xs sm:text-sm leading-relaxed">
                     Today&apos;s bookings, unread messages, unpaid invoices, and revenue at a glance the moment you log in.
                   </p>
-                </div>
+                </Spotlight>
 
-                <div className="sm:col-span-2 bg-gradient-to-br from-brandBg to-white rounded-2xl p-5 sm:p-6 border-2 border-brand/25 shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1 group relative overflow-hidden">
+                <Spotlight className="sm:col-span-2 bg-gradient-to-br from-brandBg to-surface rounded-2xl p-5 sm:p-6 border-2 border-brand/25 shadow-card transition-all duration-500 hover:shadow-lift hover:-translate-y-1">
                   <span className="absolute top-4 right-4 text-brand text-[10px] font-black uppercase tracking-wider bg-surface/70 border border-brand/20 px-2 py-0.5 rounded-full">
                     Most Powerful
                   </span>
@@ -489,7 +489,7 @@ export default function LandingPage() {
                     Business Health Score — so you know how the business is actually doing, not just how it feels.
                   </p>
                   <Bars />
-                </div>
+                </Spotlight>
               </div>
             </div>
           </FadeUp>

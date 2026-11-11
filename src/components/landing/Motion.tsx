@@ -100,39 +100,54 @@ export function Bars() {
 export function HeroVisual() {
   const chip = 'float absolute flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-bold shadow-lift'
   return (
-    <div className="relative mx-auto w-full max-w-sm lg:max-w-md">
+    <div className="relative mx-auto w-full max-w-md lg:max-w-lg pt-7">
       <div aria-hidden className="absolute inset-6 rounded-full bg-brand/20 blur-3xl" />
-      <div className="relative rounded-3xl border border-border bg-surface p-5 sm:p-6 shadow-lift">
-        <div className="flex items-center gap-3 mb-5">
-          <span className="w-11 h-11 rounded-xl gradient-brand text-white font-black flex items-center justify-center">S</span>
+      {/* Second card peeking out from behind */}
+      <div aria-hidden className="absolute top-0 left-8 -right-3 sm:-right-8 h-40 origin-bottom-left -rotate-3 rounded-3xl border border-border bg-ivoryDeep px-5 pt-2.5 shadow-card">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-red-400" />
+          <span className="w-2 h-2 rounded-full bg-yellow-400" />
+          <span className="w-2 h-2 rounded-full bg-brand" />
+          <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-inkFaint">Dashboard · Sample</span>
+        </div>
+      </div>
+      <div className="relative rounded-3xl border border-border bg-surface p-6 sm:p-8 shadow-lift">
+        <div className="flex items-center gap-3.5 mb-6">
+          <span className="w-12 h-12 rounded-xl gradient-brand text-white text-lg font-black flex items-center justify-center">S</span>
           <div>
-            <p className="font-black text-sm leading-tight">Sunrise Tailors</p>
-            <p className="text-inkFaint text-xs">Fashion · Lagos</p>
+            <p className="font-black text-base leading-tight">Sunrise Tailors</p>
+            <p className="text-inkFaint text-sm">Fashion · Lagos</p>
           </div>
           <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-warn bg-warnBg border border-warnBorder px-2 py-0.5 rounded-full">Sample</span>
         </div>
-        <div className="flex items-center gap-5 mb-5">
-          <div className="relative w-24 h-24 shrink-0">
+        <div className="flex items-center gap-6 mb-6">
+          <div className="relative w-28 h-28 shrink-0">
             <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" aria-hidden>
               <circle cx="50" cy="50" r="42" fill="none" strokeWidth="8" className="stroke-border" />
-              <circle cx="50" cy="50" r="42" fill="none" strokeWidth="8" strokeLinecap="round" strokeDasharray="264" className="stroke-brand [animation:ring_1.6s_ease-out_0.5s_both]" />
+              <circle cx="50" cy="50" r="42" fill="none" strokeWidth="8" strokeLinecap="round" strokeDasharray="264" className="stroke-brand [animation:ring_1.6s_ease-out_0.4s_both]" />
             </svg>
             <span className="absolute inset-0 flex flex-col items-center justify-center">
-              <CountUp to={85} className="text-2xl font-black" />
-              <span className="text-[10px] text-inkFaint font-bold uppercase">Trust</span>
+              <CountUp to={85} className="text-3xl font-black leading-none" />
+              <span className="text-[10px] text-inkFaint font-bold uppercase tracking-wider mt-1">TrustScore</span>
             </span>
           </div>
-          <ul className="space-y-2 text-sm font-semibold">
+          <ul className="space-y-2.5 text-sm sm:text-[15px] font-semibold">
             {['Verified business', 'Listed on Discover', '4.8 rating · 42 reviews'].map((t) => (
               <li key={t} className="flex items-center gap-2"><span className="text-brand font-black">✓</span>{t}</li>
             ))}
           </ul>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((i) => <div key={i} className="h-14 rounded-lg bg-ivoryDim border border-border" />)}
+        <p className="text-[10px] font-bold uppercase tracking-wider text-inkFaint mb-2">Shop</p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 rounded-lg bg-ivory border border-border p-2.5">
+              <div className="h-1.5 w-9 rounded bg-border mb-1.5" />
+              <div className="h-1.5 w-5 rounded bg-border" />
+            </div>
+          ))}
         </div>
       </div>
-      <span className={`${chip} -left-2 sm:-left-10 top-10`}><i className="w-2 h-2 rounded-full bg-brand" />New booking · 2:00 PM</span>
+      <span className={`${chip} -left-2 sm:-left-10 top-20`}><i className="w-2 h-2 rounded-full bg-brand" />New booking · 2:00 PM</span>
       <span className={`${chip} -right-2 sm:-right-8 top-1/2`} style={{ animationDelay: '1.5s' }}><i className="w-2 h-2 rounded-full bg-warn" />Low stock · 3 left</span>
       <span className={`${chip} left-6 -bottom-4`} style={{ animationDelay: '0.8s' }}><i className="w-2 h-2 rounded-full bg-brand" />★ New review · 5.0</span>
     </div>
