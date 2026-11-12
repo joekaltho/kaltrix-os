@@ -6,7 +6,7 @@ import { createClient, getSessionUser } from '@/lib/supabase/client'
 import { PLAN_PRICES_NGN, monthlyEquivNgn, type BillingPeriod } from '@/lib/plans'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
-import { ScrollBar, CountUp, Spotlight, Bars, HeroVisual } from '@/components/landing/Motion'
+import { CountUp, Spotlight, Bars, HeroVisual } from '@/components/landing/Motion'
 
 const PRICING_PLANS = [
   {
@@ -220,8 +220,6 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-ivory text-ink font-sans overflow-x-hidden">
 
-      <ScrollBar />
-
       {/* Nav */}
       <nav className="sticky top-0 z-50 glass border-b border-border shadow-card backdrop-blur-xl bg-surface/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
@@ -267,10 +265,7 @@ export default function LandingPage() {
               <span className="block [animation:rise_0.8s_ease-out_0.05s_both]">Get Found.</span>
               <span className="block [animation:rise_0.8s_ease-out_0.15s_both]">Get Trusted.</span>
               <span className="block [animation:rise_0.8s_ease-out_0.25s_both]">
-                <span className="relative inline-block text-brand">
-                  Get Paid.
-                  <span aria-hidden className="absolute left-0 -bottom-1 h-1.5 w-full origin-left rounded-full bg-brand/30 [animation:sweep_1s_ease-out_0.8s_both]" />
-                </span>
+                <span className="text-brand">Get Paid.</span>
               </span>
             </h1>
             <p className="text-inkMid text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mb-8 [animation:rise_0.8s_ease-out_0.35s_both]">
@@ -573,7 +568,7 @@ export default function LandingPage() {
             <FadeUp key={plan.name} delay={i * 150}>
               <div className={`rounded-2xl p-6 sm:p-7 border relative flex flex-col transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] ${
                 plan.highlight
-                  ? 'border-brand/40 bg-brandBg shadow-brand hover:shadow-brandLg'
+                  ? 'beam border-brand/40 bg-brandBg shadow-brand hover:shadow-brandLg'
                   : 'border-border bg-white shadow-card hover:shadow-lift'
               }`}>
                 {plan.highlight && (

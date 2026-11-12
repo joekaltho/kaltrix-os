@@ -62,25 +62,6 @@ export function Spotlight({ children, className = '' }: { children: React.ReactN
   )
 }
 
-export function ScrollBar() {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    let raf = 0
-    const on = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => {
-        const h = document.documentElement
-        const max = h.scrollHeight - h.clientHeight
-        if (ref.current) ref.current.style.transform = `scaleX(${max > 0 ? h.scrollTop / max : 0})`
-      })
-    }
-    window.addEventListener('scroll', on, { passive: true })
-    on()
-    return () => { window.removeEventListener('scroll', on); cancelAnimationFrame(raf) }
-  }, [])
-  return <div ref={ref} aria-hidden className="fixed top-0 left-0 right-0 z-[60] h-0.5 origin-left gradient-brand" style={{ transform: 'scaleX(0)' }} />
-}
-
 // Decorative only: bars carry no data, so there is nothing to misread.
 export function Bars() {
   const [ref, seen] = useInView<HTMLDivElement>()
@@ -100,7 +81,18 @@ export function Bars() {
 export function HeroVisual() {
   const chip = 'float absolute flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-bold shadow-lift'
   return (
-    <div className="relative mx-auto w-full max-w-md lg:max-w-lg pt-7">
+    <div
+      className="relative mx-auto w-full max-w-md lg:max-w-lg pt-7 transition-transform duration-200 ease-out"
+      onPointerMove={(e) => {
+        if (e.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+        const el = e.currentTarget
+        const r = el.getBoundingClientRect()
+        const x = (e.clientX - r.left) / r.width - 0.5
+        const y = (e.clientY - r.top) / r.height - 0.5
+        el.style.transform = `perspective(1100px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg)`
+      }}
+      onPointerLeave={(e) => { e.currentTarget.style.transform = '' }}
+    >
       <div aria-hidden className="absolute inset-6 rounded-full bg-brand/20 blur-3xl" />
       {/* Second card peeking out from behind */}
       <div aria-hidden className="absolute top-0 left-8 -right-3 sm:-right-8 h-40 origin-bottom-left -rotate-3 rounded-3xl border border-border bg-ivoryDeep px-5 pt-2.5 shadow-card">
